@@ -30,12 +30,24 @@ export default function HomePage() {
   const [showMode, setShowMode] = useState(false);
   const [toast, setToast] = useState("");
 
-  useEffect(() => { const savedTheme = localStorage.getItem("theme") as Theme | null; const savedUser = localStorage.getItem("tcf-user"); if (savedTheme) setTheme(savedTheme); if (savedUser) setUser(JSON.parse(savedUser) as User); }, []);
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as Theme | null;
+    if (savedTheme) setTheme(savedTheme);
+    fetch("/api/auth/session").then(response => response.json()).then(({ user: sessionUser }: { user: User | null }) => {
+      if (sessionUser) { setUser(sessionUser); setRoute("dashboard"); }
+    }).catch(() => undefined);
+    const authStatus = new URLSearchParams(window.location.search).get("auth");
+    if (authStatus === "error") setToast("Google sign-in failed. Check your OAuth redirect URI.");
+    if (authStatus) window.history.replaceState({}, "", window.location.pathname);
+  }, []);
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("theme", theme); }, [theme]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(""), 2200); return () => clearTimeout(timer); }, [toast]);
 
-  const login = (email: string) => { const next = { email }; setUser(next); localStorage.setItem("tcf-user", JSON.stringify(next)); setRoute("dashboard"); };
-  const logout = () => { setUser(null); localStorage.removeItem("tcf-user"); setRoute("home"); };
+  const login = (email: string) => {
+    if (email === "learner@gmail.com") { window.location.href = "/api/auth/google"; return; }
+    const next = { email }; setUser(next); localStorage.setItem("tcf-user", JSON.stringify(next)); setRoute("dashboard");
+  };
+  const logout = () => { void fetch("/api/auth/logout", { method: "POST" }); setUser(null); localStorage.removeItem("tcf-user"); setRoute("home"); };
   const beginExam = (nextMode: PracticeMode) => { setMode(nextMode); setQuestionIndex(0); setAnswers({}); setFlagged(new Set()); setShowMode(false); setRoute("exam"); };
   const nextQuestion = () => questionIndex < questions.length - 1 ? setQuestionIndex(questionIndex + 1) : setRoute("results");
   const toggleFlag = () => setFlagged(current => { const updated = new Set(current); updated.has(questionIndex) ? updated.delete(questionIndex) : updated.add(questionIndex); return updated; });
