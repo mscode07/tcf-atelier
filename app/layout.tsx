@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Mono, Manrope, Newsreader } from "next/font/google";
 import "../styles.css";
+import "./progress.css";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader" });

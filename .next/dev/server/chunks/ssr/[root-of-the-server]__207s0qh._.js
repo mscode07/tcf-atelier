@@ -101,6 +101,7 @@ var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$d
 ;
 ;
 ;
+;
 const metadata = {
     title: "TCF Atelier",
     description: "Focused French exam practice for the TCF."
@@ -113,12 +114,12 @@ function RootLayout({ children }) {
             children: children
         }, void 0, false, {
             fileName: "[project]/app/layout.tsx",
-            lineNumber: 12,
+            lineNumber: 13,
             columnNumber: 26
         }, this)
     }, void 0, false, {
         fileName: "[project]/app/layout.tsx",
-        lineNumber: 12,
+        lineNumber: 13,
         columnNumber: 10
     }, this);
 }

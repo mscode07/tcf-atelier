@@ -20,44 +20,41 @@ random `AUTH_SECRET` in `.env.local`. In Google Cloud Console, add
 
 ## Supabase
 
-Add `SUPABASE_URL` and either `SUPABASE_SERVICE_ROLE_KEY` (server-only) or
-`SUPABASE_ANON_KEY` to Hostinger's environment variables. Do not add the
-`NEXT_PUBLIC_` prefix to a service-role key.
-
-Use the shared server client from `db.js` in route handlers or other server code:
-
-```js
-const { getSupabase } = require("./db");
-
-const { data, error } = await getSupabase().from("your_table").select("*");
-if (error) throw error;
-```
-
-Replace `your_table` with the exact table name from Supabase. Environment
-variables must also be configured in Hostinger; the local `.env` file is not
-automatically uploaded to a deployment.
+Copy the Supabase PostgreSQL transaction-pooler URI into `DATABASE_URL` locally
+and in Hostinger. Replace the password placeholder in the URI with the Supabase
+database password, then run `npm run db:migrate`. Drizzle schemas live in
+`lib/db/schema.ts`; generated SQL migrations live in `drizzle/`. Local `.env`
+files are not automatically uploaded to Hostinger.
 
 After deployment, open `/api/database/health` on your website. A working
-connection returns `{ "ok": true, "database": "connected" }`. The diagnostic
-response identifies missing variables or a rejected key without exposing any
-secret values.
+connection returns `{ "ok": true, "database": "connected", "orm": "drizzle" }`.
+The diagnostic response identifies a missing connection string or schema
+without exposing any secret values.
 
 ### Email accounts
 
-Run `supabase/schema.sql` once in the Supabase SQL Editor. The email form then
-uses Auth.js credentials: a new email creates an account, and an existing email
-signs in after checking its bcrypt password hash. This flow requires the
-server-only `SUPABASE_SERVICE_ROLE_KEY`; an anon key is not sufficient.
+The email form uses Auth.js credentials: a new email creates an account, and an
+existing email signs in after checking its bcrypt password hash. All reads and
+writes go through Drizzle over the server-only `DATABASE_URL`.
+
+Google sign-ins are upserted into `app_users` and linked in `auth_accounts`.
+Each successful login stores the normalized email, Google subject ID, name,
+avatar, provider, and login timestamps. Existing email accounts are linked by
+email without replacing their password hash.
 
 ## Included
 
 - Responsive landing page and three access plans
 - Email prototype login and real Google OAuth authentication
 - Learner dashboard with four practice modules
+- Forty supplied 39-question audio tests mapped to Listening Tests 1–40
+- Forty interactive 39-question Reading tests with selectable answers, checking, progress, and results
 - Forty-test browser and exam/review mode selection
 - Interactive question runner, flags, navigation, progress, and results
 - Light/dark themes and local browser persistence
 
 ## Production integrations
 
-The email and Razorpay actions remain demo adapters. Add persistent user storage, payment signature verification, user entitlements, question/audio storage, and durable attempt history for production.
+User storage is persistent. Payment signature verification, user entitlements,
+question/audio storage, and durable attempt history still need production
+integrations.
