@@ -56,37 +56,10 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../../app/api/auth/google/callback/route.ts
+// Validate ../../../app/api/auth/[...nextauth]/route.ts
 {
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/google/callback">> = Specific
-  const handler = {} as typeof import("../../../app/api/auth/google/callback/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
-// Validate ../../../app/api/auth/google/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/google">> = Specific
-  const handler = {} as typeof import("../../../app/api/auth/google/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
-// Validate ../../../app/api/auth/logout/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/logout">> = Specific
-  const handler = {} as typeof import("../../../app/api/auth/logout/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
-// Validate ../../../app/api/auth/session/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/session">> = Specific
-  const handler = {} as typeof import("../../../app/api/auth/session/route.js")
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/[...nextauth]">> = Specific
+  const handler = {} as typeof import("../../../app/api/auth/[...nextauth]/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

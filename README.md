@@ -15,7 +15,7 @@ Then open `http://localhost:3000`.
 
 For Google sign-in, set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and a long
 random `AUTH_SECRET` in `.env.local`. In Google Cloud Console, add
-`http://localhost:3000/api/auth/google/callback` as an authorized redirect URI
+`http://localhost:3000/api/auth/callback/google` as an authorized redirect URI
 (and add the matching HTTPS callback URI for production).
 
 ## Supabase
@@ -41,6 +41,13 @@ After deployment, open `/api/database/health` on your website. A working
 connection returns `{ "ok": true, "database": "connected" }`. The diagnostic
 response identifies missing variables or a rejected key without exposing any
 secret values.
+
+### Email accounts
+
+Run `supabase/schema.sql` once in the Supabase SQL Editor. The email form then
+uses Auth.js credentials: a new email creates an account, and an existing email
+signs in after checking its bcrypt password hash. This flow requires the
+server-only `SUPABASE_SERVICE_ROLE_KEY`; an anon key is not sufficient.
 
 ## Included
 

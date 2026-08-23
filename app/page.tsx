@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { signIn, signOut } from "next-auth/react";
 
 type Route = "home" | "auth" | "dashboard" | "tests" | "exam" | "results";
 type Theme = "light" | "dark";
@@ -28,26 +29,31 @@ export default function HomePage() {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [flagged, setFlagged] = useState<Set<number>>(new Set());
   const [showMode, setShowMode] = useState(false);
-  const [toast, setToast] = useState("");
+  const [toast, setToastState] = useState("");
+  const setToast = (message: string) => setToastState(message === "Demo Google account connected" ? "" : message);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as Theme | null;
     if (savedTheme) setTheme(savedTheme);
-    fetch("/api/auth/session").then(response => response.json()).then(({ user: sessionUser }: { user: User | null }) => {
+    fetch("/api/auth/session").then(response => response.json()).then(({ user: sessionUser }: { user?: User | null }) => {
       if (sessionUser) { setUser(sessionUser); setRoute("dashboard"); }
     }).catch(() => undefined);
     const authStatus = new URLSearchParams(window.location.search).get("auth");
-    if (authStatus === "error") setToast("Google sign-in failed. Check your OAuth redirect URI.");
+    if (authStatus === "error") setToast("Google sign-in failed. Check your Auth.js callback URL.");
     if (authStatus) window.history.replaceState({}, "", window.location.pathname);
   }, []);
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("theme", theme); }, [theme]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(""), 2200); return () => clearTimeout(timer); }, [toast]);
 
-  const login = (email: string) => {
-    if (email === "learner@gmail.com") { window.location.href = "/api/auth/google"; return; }
-    const next = { email }; setUser(next); localStorage.setItem("tcf-user", JSON.stringify(next)); setRoute("dashboard");
+  const login = async (email: string) => {
+    if (email === "learner@gmail.com") { void signIn("google", { callbackUrl: "/" }); return; }
+    const password = (document.getElementById("password") as HTMLInputElement | null)?.value ?? "";
+    const result = await signIn("credentials", { email, password, redirect: false });
+    if (!result || result.error) { setToast("Incorrect email or password."); return; }
+    const next = { email: email.trim().toLowerCase() };
+    setUser(next); setRoute("dashboard");
   };
-  const logout = () => { void fetch("/api/auth/logout", { method: "POST" }); setUser(null); localStorage.removeItem("tcf-user"); setRoute("home"); };
+  const logout = () => { void signOut({ redirect: false }); setUser(null); localStorage.removeItem("tcf-user"); setRoute("home"); };
   const beginExam = (nextMode: PracticeMode) => { setMode(nextMode); setQuestionIndex(0); setAnswers({}); setFlagged(new Set()); setShowMode(false); setRoute("exam"); };
   const nextQuestion = () => questionIndex < questions.length - 1 ? setQuestionIndex(questionIndex + 1) : setRoute("results");
   const toggleFlag = () => setFlagged(current => { const updated = new Set(current); updated.has(questionIndex) ? updated.delete(questionIndex) : updated.add(questionIndex); return updated; });
