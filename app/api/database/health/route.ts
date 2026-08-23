@@ -1,41 +1,32 @@
 import { NextResponse } from "next/server";
+import { sql } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
+  if (!process.env.DATABASE_URL) {
     return NextResponse.json({
       ok: false,
       error: "missing_environment_variables",
-      missing: [
-        ...(!url ? ["SUPABASE_URL"] : []),
-        ...(!key ? ["SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY"] : []),
-      ],
+      missing: ["DATABASE_URL"],
+      hint: "Add the Supabase PostgreSQL pooler connection string in Hostinger.",
     }, { status: 503 });
   }
 
   try {
-    const response = await fetch(`${url}/rest/v1/`, {
-      headers: { apikey: key, authorization: `Bearer ${key}` },
-      cache: "no-store",
-    });
+    const db = getDb();
+    await db.execute(sql`select 1`);
+    await db.select({ id: users.id }).from(users).limit(1);
 
-    if (!response.ok) {
-      return NextResponse.json({
-        ok: false,
-        error: "supabase_rejected_connection",
-        supabaseStatus: response.status,
-      }, { status: 502 });
-    }
-
-    return NextResponse.json({ ok: true, database: "connected" });
-  } catch {
+    return NextResponse.json({ ok: true, database: "connected", orm: "drizzle", appUsersTable: "ready" });
+  } catch (error) {
+    console.error("Database health check failed", error);
     return NextResponse.json({
       ok: false,
-      error: "supabase_unreachable",
+      error: "database_unreachable_or_schema_missing",
+      hint: "Verify DATABASE_URL and run npm run db:migrate.",
     }, { status: 502 });
   }
 }

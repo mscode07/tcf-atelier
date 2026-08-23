@@ -1,0 +1,513 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>TCF Listening Test 5</title>
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f6f8;
+  color: #161616;
+}
+
+header {
+  background: white;
+  border-bottom: 1px solid #ddd;
+  padding: 18px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+header p {
+  margin: 5px 0 0;
+  color: #666;
+}
+
+.main {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 0 18px;
+}
+
+.progress {
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #555;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+}
+
+.question-image {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  margin: 5px auto 25px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+}
+
+audio {
+  width: 100%;
+  margin: 10px 0 25px;
+}
+
+.question-text {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 15px 0 20px;
+}
+
+.option {
+  width: 100%;
+  padding: 16px;
+  margin: 9px 0;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  background: white;
+  text-align: left;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.option:hover {
+  border-color: #999;
+}
+
+.option.selected {
+  border-color: #333;
+  background: #f3f3f3;
+}
+
+.option.correct {
+  border-color: #1aaa55;
+  background: #eaf8ef;
+}
+
+.option.wrong {
+  border-color: #d63a3a;
+  background: #fff0f0;
+}
+
+.feedback {
+  min-height: 28px;
+  margin-top: 16px;
+  font-weight: bold;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 9px;
+  padding: 12px 17px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.primary {
+  background: #222;
+  color: white;
+}
+
+.secondary {
+  background: #e9e9e9;
+  color: #111;
+}
+
+.nav {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill, minmax(46px, 1fr));
+  gap: 7px;
+  margin-top: 25px;
+}
+
+.nav button {
+  padding: 9px 4px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  background: white;
+  cursor: pointer;
+}
+
+.nav button.current {
+  background: #222;
+  color: white;
+}
+
+.nav button.answered {
+  border-color: #555;
+}
+
+.results {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  margin-top: 22px;
+  display: none;
+}
+
+.score {
+  font-size: 30px;
+  font-weight: bold;
+}
+
+</style>
+
+<link rel="stylesheet" href="/listening-player.css">
+
+</head>
+
+<body>
+
+<header>
+
+<a href="/">← Back to TCF Atelier</a>
+
+<h1>TCF Listening — Test 5</h1>
+
+<p>39 Questions</p>
+
+</header>
+
+<div class="main">
+
+<div class="progress" id="progress"></div>
+
+<div class="card" id="card"></div>
+
+<div class="nav" id="nav"></div>
+
+<div class="results" id="results"></div>
+
+</div>
+
+<script>
+
+const QUESTIONS = [{"number":1,"question":"","options":["A.","B.","C.","D."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q1_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test20/test20_q1_image.webp"},{"number":2,"question":"","options":["A.","B.","C.","D."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q2_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q2_image.webp"},{"number":3,"question":"","options":["A.","B.","C.","D."],"correct":"?","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q3_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q3_image.webp"},{"number":4,"question":"","options":["A.","B.","C.","D."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q4_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q4_image.webp"},{"number":5,"question":"","options":["A.","B.","C.","D."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q5_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q5_image.webp"},{"number":6,"question":"","options":["A.","B.","C.","D."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q6_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q6_image.webp"},{"number":7,"question":"","options":["A.","B.","C.","D."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q7_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q7_image.webp"},{"number":8,"question":"","options":["A.","B.","C.","D."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q8_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q8_image.webp"},{"number":9,"question":"","options":["A.","B.","C.","D."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q9_audio.mp3","image":""},{"number":10,"question":"","options":["A.","B.","C.","D."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q10_audio.mp3","image":""},{"number":11,"question":"","options":["A.","B.","C.","D."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q11_audio.mp3","image":""},{"number":12,"question":"","options":["A.Aller au 2e étage.","B.Monter à pied.","C.Prendre l’ascenseur.","D.Passer par la cafétéria."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q12_audio.mp3","image":""},{"number":13,"question":"","options":["A.Inviter des amis chez elles.","B.Rendre visite à un ami.","C.Faire des courses.","D.Manger en plein air."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q13_audio.mp3","image":""},{"number":14,"question":"","options":["A.Une chambre d’hôtel.","B.Une maison individuelle.","C.Un grand appartement.","D.Un studio en ville."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q14_audio.mp3","image":""},{"number":15,"question":"","options":["A.Pour contrôler l’état des machines en service.","B.Pour donner une formation aux employés.","C.Pour mettre à jour toutes les applications.","D.Pour réparer des équipements informatiques."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q15_audio.mp3","image":""},{"number":16,"question":"","options":["A.Un emploi du temps surchargé.","B.Un encadrement trop rigide.","C.Un manque d’activités de plein air.","D.Un usage excessif des écrans."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q16_audio.mp3","image":""},{"number":17,"question":"","options":["A.Prévenir d’un danger.","B.Signaler le départ d’un train.","C.Annoncer l’arrivée d’un train.","D.Avertir d’un incident."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q17_audio.mp3","image":""},{"number":18,"question":"","options":["A.Elle a trouvé pour son ami un emploi à temps complet dans une société.","B.Son ami est définitivement employé dans la société où il travaille.","C.Son ami vient de trouver son premier emploi à l’essai.","D.Elle va signer un contrat d’embauche à temps complet."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q18_audio.mp3","image":""},{"number":19,"question":"","options":["A.De déjeuner ensemble.","B.De faire une soirée.","C.De participer à un jeu.","D.De rencontrer un invité."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q19_audio.mp3","image":""},{"number":20,"question":"","options":["A.Le recrutement se fonde sur l’expérience.","B.Les salaires à l’embauche sont très élevés.","C.L’évolution professionnelle est très lente.","D.L’obtention d’un premier emploi est aisée."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q20_audio.mp3","image":""},{"number":21,"question":"","options":["A.Le promoteur a oublié de prévenir la compagnie de téléphone.","B.Le réseau téléphonique du nouvel immeuble est déjà saturé.","C.Les travaux nécessaires ne sont pas encore achevés.","D.La compagnie de téléphone manque de personnel pour le faire."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q21_audio.mp3","image":""},{"number":22,"question":"","options":["A.Des activités en faveur du développement durable.","B.Des formations aux nouveaux métiers de l’éducation.","C.Des sorties équestres pour les écoliers de la région.","D.Des stages à destination des animateurs jeunesse."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q22_audio.mp3","image":""},{"number":23,"question":"A.Comment protéger ses végétaux ?","options":["A.Comment protéger ses végétaux ?","B.Comment recycler son sapin ?","C.Comment replanter un arbre ?","D.Comment scier une branche ?"],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q23_audio.mp3","image":""},{"number":24,"question":"","options":["A.Pour changer de profession.","B.Pour découvrir de nouveaux lieux.","C.Pour se rapprocher de sa famille.","D.Pour suivre son compagnon."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q24_audio.mp3","image":""},{"number":25,"question":"","options":["A.Ils aiment passer leurs vieux jours dans le sud de la France.","B.Ils osent davantage partir à l’étranger qu’auparavant.","C.Ils payent plus d’impôts que les autres citoyens européens.","D.Ils prennent des cours de langue pour améliorer leur niveau."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q25_audio.mp3","image":""},{"number":26,"question":"","options":["A.Un essai historique sur la vie à Paris pendant la Seconde Guerre mondiale.","B.Un livre de souvenirs sur l’histoire mouvementée de sa famille.","C.Un récit autobiographique ancré dans la vie intellectuelle du siècle dernier.","D.Un roman sur l’impact des événements historiques sur le destin individuel."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q26_audio.mp3","image":""},{"number":27,"question":"","options":["A.De ses difficultés à se réveiller le matin.","B.De son dernier salaire qui est insuffisant.","C.De son emploi du temps professionnel.","D.De son manque d’organisation habituel."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q27_audio.mp3","image":""},{"number":28,"question":"","options":["A.Elle est sortie en boîte de nuit.","B.Elle a dîné avec sa famille.","C.Elle est restée toute seule.","D.Elle a vu un mauvais film."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q28_audio.mp3","image":""},{"number":29,"question":"","options":["A.L’absence de distractions dans le village où elle habitait.","B.L’influence autoritaire que son père a exercée sur elle.","C.Le choc du tout premier film qu’elle a vu dans sa vie.","D.Sa fréquentation des salles dès son plus jeune âge."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q29_audio.mp3","image":""},{"number":30,"question":"","options":["A.À classer les établissements selon un taux de performance.","B.À communiquer sur les progrès de l’élève dans chaque matière.","C.À créer une échelle lisible de classification des élèves.","D.À susciter chez l’élève l’envie de devenir le meilleur de la classe."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q30_audio.mp3","image":""},{"number":31,"question":"","options":["A.Manger de tout, y compris ce qu’il n’aime pas.","B.Cesser de consommer du pain ou des féculents.","C.Manger plus léger sans changer ses habitudes.","D.Se garder de consommer des aliments sucrés."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q31_audio.mp3","image":""},{"number":32,"question":"","options":["A.La diversité des parlers régionaux des personnages.","B.La mise en relief des formules figées de la langue.","C.Le recours constant au registre familier.","D.Les jeux de mots récurrents dans les titres."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q32_audio.mp3","image":""},{"number":33,"question":"","options":["A.Augmenter la fréquentation des théâtres.","B.Créer une troupe de théâtre indépendante.","C.Déterminer les nouveaux enjeux du théâtre.","D.Jouer dans des pièces de théâtre inédites."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q33_audio.mp3","image":""},{"number":34,"question":"","options":["A.De prendre ouvertement position dans des rivalités internes.","B.De se confier à tous ses collègues avant de les connaître.","C.De trop faire valoir ses compétences pour montrer sa supériorité.","D.De vouloir participer à tous les projets sans vraiment s’investir."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q34_audio.mp3","image":""},{"number":35,"question":"","options":["A.De nouveaux modes de culture.","B.Des circuits de distribution courts.","C.Des contrôles sanitaires plus rapides.","D.Des systèmes de production innovants."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q35_audio.mp3","image":""},{"number":36,"question":"","options":["A.L’intérêt principal de sa mise en place a disparu.","B.Le ministère manque de moyens pour l’organiser.","C.Le taux de réussite des candidats est en baisse.","D.Le nombre de fraudes constatées augmente."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q36_audio.mp3","image":""},{"number":37,"question":"","options":["A.Les bâtiments restaurés sont en nombre insuffisant.","B.Les cités réaménagées sont surtout résidentielles.","C.Les municipalités privilégient les projets coûteux.","D.Les réhabilitations ont une portée limitée."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q37_audio.mp3","image":""},{"number":38,"question":"","options":["A.L’accès à la reconnaissance sociale est conditionné par le travail.","B.La réalisation de soi par le travail est devenue une obligation.","C.Les responsabilités au travail sont considérées comme des priorités absolues.","D.Le travail est systématiquement opposé à l’épanouissement personnel."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q38_audio.mp3","image":""},{"number":39,"question":"","options":["A.Elle est trop éloignée des orientations politiques actuelles.","B.Elle fait référence à des événements historiques douloureux.","C.Elle fait ressurgir des rivalités ou des antagonismes oubliés.","D.Elle remet en cause la domination faite de certains pays."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test5/test5_q39_audio.mp3","image":""}];
+
+let current = 0;
+
+const responses =
+  Array(QUESTIONS.length).fill(null);
+
+const checked =
+  Array(QUESTIONS.length).fill(false);
+
+function letter(i) {
+  return String.fromCharCode(65 + i);
+}
+
+function choose(i) {
+  if (checked[current]) return;
+
+  responses[current] = i;
+  render();
+}
+
+function checkAnswer() {
+
+  if (responses[current] === null) {
+    alert('Please select an answer first.');
+    return;
+  }
+
+  checked[current] = true;
+  render();
+}
+
+function next() {
+  if (current < QUESTIONS.length - 1) {
+    current++;
+    render();
+  }
+}
+
+function previous() {
+  if (current > 0) {
+    current--;
+    render();
+  }
+}
+
+function goTo(index) {
+  current = index;
+  render();
+}
+
+function finish() {
+
+  let score = 0;
+
+  QUESTIONS.forEach((q, i) => {
+
+    if (
+      responses[i] !== null &&
+      letter(responses[i]) === q.correct
+    ) {
+      score++;
+    }
+  });
+
+  const percent =
+    Math.round(
+      score / QUESTIONS.length * 100
+    );
+
+  const box =
+    document.getElementById('results');
+
+  box.style.display = 'block';
+
+  box.innerHTML = `
+    <div class="score">
+      ${score}/${QUESTIONS.length}
+    </div>
+
+    <p>
+      Score: ${percent}%
+    </p>
+  `;
+
+  box.scrollIntoView({
+    behavior: 'smooth'
+  });
+}
+
+function resetTest() {
+
+  if (!confirm('Reset the complete test?')) {
+    return;
+  }
+
+  responses.fill(null);
+  checked.fill(false);
+  current = 0;
+
+  document.getElementById(
+    'results'
+  ).style.display = 'none';
+
+  render();
+}
+
+function renderNavigation() {
+
+  const nav =
+    document.getElementById('nav');
+
+  nav.innerHTML = '';
+
+  QUESTIONS.forEach((q, i) => {
+
+    const b =
+      document.createElement('button');
+
+    b.textContent =
+      'Q' + q.number;
+
+    if (i === current) {
+      b.classList.add('current');
+    }
+
+    if (responses[i] !== null) {
+      b.classList.add('answered');
+    }
+
+    b.onclick =
+      () => goTo(i);
+
+    nav.appendChild(b);
+  });
+}
+
+function render() {
+
+  const q =
+    QUESTIONS[current];
+
+  document.getElementById(
+    'progress'
+  ).textContent =
+    'Question ' +
+    (current + 1) +
+    ' of ' +
+    QUESTIONS.length;
+
+  let image = '';
+
+  if (q.image) {
+    image = `
+      <img
+        src="${q.image}"
+        class="question-image"
+        alt="Question image"
+      >
+    `;
+  }
+
+  let audio = `
+    <audio
+      controls
+      preload="metadata"
+      src="${q.audio}"
+    ></audio>
+  `;
+
+  let options = '';
+
+  q.options.forEach((option, i) => {
+
+    const classes =
+      ['option'];
+
+    if (
+      responses[current] === i
+    ) {
+      classes.push('selected');
+    }
+
+    if (checked[current]) {
+
+      if (
+        letter(i) === q.correct
+      ) {
+        classes.push('correct');
+      }
+
+      if (
+        responses[current] === i &&
+        letter(i) !== q.correct
+      ) {
+        classes.push('wrong');
+      }
+    }
+
+    options += `
+      <button
+        class="${classes.join(' ')}"
+        onclick="choose(${i})"
+      >
+        ${option}
+      </button>
+    `;
+  });
+
+  let feedback = '';
+
+  if (checked[current]) {
+
+    const selected =
+      letter(responses[current]);
+
+    feedback =
+      selected === q.correct
+        ? '✓ Correct'
+        : 'Correct answer: ' + q.correct;
+  }
+
+  document.getElementById(
+    'card'
+  ).innerHTML = `
+
+    ${image}
+
+    ${audio}
+
+    <div class="question-text">
+      ${q.question || ''}
+    </div>
+
+    ${options}
+
+    <div class="feedback">
+      ${feedback}
+    </div>
+
+    <div class="controls">
+
+      <button
+        class="btn secondary"
+        onclick="previous()"
+      >
+        ← Previous
+      </button>
+
+      <button
+        class="btn primary"
+        onclick="checkAnswer()"
+      >
+        Check Answer
+      </button>
+
+      <button
+        class="btn secondary"
+        onclick="next()"
+      >
+        Next →
+      </button>
+
+      <button
+        class="btn primary"
+        onclick="finish()"
+      >
+        Finish Test
+      </button>
+
+      <button
+        class="btn secondary"
+        onclick="resetTest()"
+      >
+        Reset
+      </button>
+
+    </div>
+  `;
+
+  renderNavigation();
+}
+
+render();
+
+</script>
+
+<script src="/listening-progress.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,513 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>TCF Listening Test 40</title>
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f6f8;
+  color: #161616;
+}
+
+header {
+  background: white;
+  border-bottom: 1px solid #ddd;
+  padding: 18px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+header p {
+  margin: 5px 0 0;
+  color: #666;
+}
+
+.main {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 0 18px;
+}
+
+.progress {
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #555;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+}
+
+.question-image {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  margin: 5px auto 25px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+}
+
+audio {
+  width: 100%;
+  margin: 10px 0 25px;
+}
+
+.question-text {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 15px 0 20px;
+}
+
+.option {
+  width: 100%;
+  padding: 16px;
+  margin: 9px 0;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  background: white;
+  text-align: left;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.option:hover {
+  border-color: #999;
+}
+
+.option.selected {
+  border-color: #333;
+  background: #f3f3f3;
+}
+
+.option.correct {
+  border-color: #1aaa55;
+  background: #eaf8ef;
+}
+
+.option.wrong {
+  border-color: #d63a3a;
+  background: #fff0f0;
+}
+
+.feedback {
+  min-height: 28px;
+  margin-top: 16px;
+  font-weight: bold;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 9px;
+  padding: 12px 17px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.primary {
+  background: #222;
+  color: white;
+}
+
+.secondary {
+  background: #e9e9e9;
+  color: #111;
+}
+
+.nav {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill, minmax(46px, 1fr));
+  gap: 7px;
+  margin-top: 25px;
+}
+
+.nav button {
+  padding: 9px 4px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  background: white;
+  cursor: pointer;
+}
+
+.nav button.current {
+  background: #222;
+  color: white;
+}
+
+.nav button.answered {
+  border-color: #555;
+}
+
+.results {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  margin-top: 22px;
+  display: none;
+}
+
+.score {
+  font-size: 30px;
+  font-weight: bold;
+}
+
+</style>
+
+<link rel="stylesheet" href="/listening-player.css">
+
+</head>
+
+<body>
+
+<header>
+
+<a href="/">← Back to TCF Atelier</a>
+
+<h1>TCF Listening — Test 40</h1>
+
+<p>39 Questions</p>
+
+</header>
+
+<div class="main">
+
+<div class="progress" id="progress"></div>
+
+<div class="card" id="card"></div>
+
+<div class="nav" id="nav"></div>
+
+<div class="results" id="results"></div>
+
+</div>
+
+<script>
+
+const QUESTIONS = [{"number":1,"question":"","options":["A.","B.","C.","D."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q1_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test24/test24_q1_image.webp"},{"number":2,"question":"","options":["A.","B.","C.","D."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q2_audio.mp3","image":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test25/test25_q2_image.webp"},{"number":3,"question":"","options":["A.","B.","C.","D."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q3_audio.mp3","image":""},{"number":4,"question":"","options":["A.","B.","C.","D."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q4_audio.mp3","image":""},{"number":5,"question":"","options":["A.","B.","C.","D."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q5_audio.mp3","image":""},{"number":6,"question":"","options":["A.","B.","C.","D."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q6_audio.mp3","image":""},{"number":7,"question":"","options":["A.","B.","C.","D."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q7_audio.mp3","image":""},{"number":8,"question":"","options":["A.","B.","C.","D."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q8_audio.mp3","image":""},{"number":9,"question":"","options":["A.","B.","C.","D."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q9_audio.mp3","image":""},{"number":10,"question":"","options":["A.Écrire.","B.Téléphoner.","C.Lire.","D.Écouter."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q10_audio.mp3","image":""},{"number":11,"question":"","options":["A.La mode.","B.La nature.","C.Les saisons.","D.Les vacances."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q11_audio.mp3","image":""},{"number":12,"question":"","options":["A.Leur client.","B.Leur collègue.","C.Leur directeur.","D.Leur professeur."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q12_audio.mp3","image":""},{"number":13,"question":"","options":["A.La création d’un réseau de médiateurs.","B.Le financement nécessaire aux médiateurs.","C.Le partage d’expériences entre médiateurs.","D.Le rôle des médiateurs en milieu scolaire."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q13_audio.mp3","image":""},{"number":14,"question":"","options":["A.Féliciter les acteurs dans leur loge.","B.Remettre un vêtement au vestiaire.","C.Retourner à la salle de spectacle.","D.S’informer sur la programmation."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q14_audio.mp3","image":""},{"number":15,"question":"","options":["A.Pour lui conseiller d’aller voir un médecin.","B.Pour lui dire qu’elle sera un peu en retard.","C.Pour lui proposer un film qu’elle veut voir.","D.Pour lui rappeler une chose importante."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q15_audio.mp3","image":""},{"number":16,"question":"","options":["A.Pour lui communiquer une décision.","B.Pour lui confirmer une adresse.","C.Pour lui demander d’envoyer un CV.","D.Pour lui proposer un entretien."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q16_audio.mp3","image":""},{"number":17,"question":"","options":["A.Confirmer la date d’un entretien d’embauche.","B.Se renseigner sur les conditions de travail.","C.S’informer sur une formation professionnelle.","D.Vérifier si un courrier est bien arrivé."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q17_audio.mp3","image":""},{"number":18,"question":"","options":["A.Elle accueille une main-d’œuvre ciblée.","B.Elle bénéficie d’une situation géographique privilégiée.","C.Elle est la destination d’une population migrante jeune.","D.Elle pratique une politique nataliste très attractive."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q18_audio.mp3","image":""},{"number":19,"question":"","options":["A.Elle va appeler le locataire.","B.Elle va attendre un petit peu.","C.Elle va refuser le paiement.","D.Elle va revenir une autre fois."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q19_audio.mp3","image":""},{"number":20,"question":"","options":["A.Interviewer un réalisateur.","B.Participer à un festival.","C.Tourner un film.","D.Visiter des studios de cinéma."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q20_audio.mp3","image":""},{"number":21,"question":"","options":["A.D’un projet de voyage.","B.D’un changement de travail.","C.D’un futur déménagement.","D.D’une sortie au cinéma."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q21_audio.mp3","image":""},{"number":22,"question":"","options":["A.Ils affichaient des prix erronés.","B.Ils annonçaient de fausses promotions.","C.Ils soldaient des articles périmés.","D.Ils vendaient des marchandises à perte."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q22_audio.mp3","image":""},{"number":23,"question":"","options":["A.II n’y a plus de place en seconde classe.","B.II n’y a plus de place pour la voiture.","C.Il n’y a plus de place pour quatre personnes.","D.II n’y a plus de cabines pour quatre personnes."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q23_audio.mp3","image":""},{"number":24,"question":"","options":["A.Elle a changé de cursus universitaire.","B.Elle a rencontré des gens étonnants.","C.Elle a suivi des enseignements variés.","D.Elle a trouvé le niveau des cours facile."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q24_audio.mp3","image":""},{"number":25,"question":"","options":["A.Le nombre d’étudiants inscrits a augmenté.","B.Les cursus sur l’environnement se sont multipliés.","C.Les enseignants font des carrières prestigieuses.","D.Les formations sont devenues plus concrètes."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q25_audio.mp3","image":""},{"number":26,"question":"","options":["A.La création de meubles à partir du recyclage.","B.La distribution d’emballages non polluants.","C.La promotion des marques peu connues.","D.L’achat en gros d’aliments labellisés bio."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q26_audio.mp3","image":""},{"number":27,"question":"","options":["A.Leur intérêt pour les méthodes minimalistes.","B.Leur participation à la même émission de radio.","C.Leur processus créatif pour développer des projets.","D.Les avis qu’ils partagent au sujet de l’école."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q27_audio.mp3","image":""},{"number":28,"question":"","options":["A.Être insistant pour augmenter les ventes.","B.Ignorer les clients pour leur donner de l’espace.","C.Assister de façon discrète le client.","D.Se concentrer sur l’arrangement des produits."],"correct":"C","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q28_audio.mp3","image":""},{"number":29,"question":"","options":["A.D’un outil qui facilite l’apprentissage, quel que soit la discipline étudiée.","B.De la bonne méthode de révision d’un cours quand on est pris par le temps.","C.De la difficulté a rédigé des cours motivants pour les jeunes étudiants.","D.Des limites de l’enseignement à distance pour certaines disciplines."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q29_audio.mp3","image":""},{"number":30,"question":"","options":["A.Ils habitent plus longtemps en location.","B.Ils perçoivent un salaire plus élevé.","C.Ils s’investissent dans des associations.","D.Ils sont tentés par les dépenses."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q30_audio.mp3","image":""},{"number":31,"question":"","options":["A.Pendant le match, sur le terrain.","B.Ils préfèrent intervenir après la fin du match.","C.À chaque pause de jeu.","D.Exclusivement à la mi-temps."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q31_audio.mp3","image":""},{"number":32,"question":"","options":["A.L’utilisation de la musique dans les programmes télévisés.","B.Les copies gratuites sur internet.","C.La diffusion non autorisée en radio.","D.Le partage de CD entre particuliers."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q32_audio.mp3","image":""},{"number":33,"question":"","options":["A.Il affecte uniquement les régions polaires.","B.Il change notre quotidien et menace des saisons entières.","C.Il est un phénomène lointain sans impact direct.","D.Il peut être complètement évité si on agit maintenant."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q33_audio.mp3","image":""},{"number":34,"question":"","options":["A.Ils sont satisfaits de l’espace de leur nouvelle habitation.","B.Ils ont un souci de l’intégration.","C.Ils regrettent le manque de culture à Montpellier.","D.Ils se plaignent du climat."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q34_audio.mp3","image":""},{"number":35,"question":"","options":["A.Problème de communication, aucun moyen de sensibiliser les écologistes.","B.Le lien avec la forêt est bien établi grâce aux efforts continus.","C.Les associations forestières sont suffisamment réparties pour couvrir les besoins de sensibilisation.","D.La population urbaine est totalement engagée avec l’industrie forestière."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q35_audio.mp3","image":""},{"number":36,"question":"","options":["A.C’est un thème controversé.","B.C’est une croyance invraisemblable.","C.C’est une hypothèse vérifiée.","D.C’est une invention de science-fiction."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q36_audio.mp3","image":""},{"number":37,"question":"","options":["A.Il admet que les guérisons spontanées sont fréquentes.","B.Il considère que la médecine a du mal à tout expliquer.","C.Il déconseille l’utilisation de certains médicaments.","D.Il est convaincu de l’efficacité des remèdes naturels."],"correct":"B","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q37_audio.mp3","image":""},{"number":38,"question":"","options":["A.Un durcissement des politiques relatives à la consommation.","B.Un renforcement des pouvoirs de la Commission européenne.","C.Une homogénéisation des règlementations internationales.","D.Une législation dans le respect de la singularité des États."],"correct":"D","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q38_audio.mp3","image":""},{"number":39,"question":"","options":["A.Le processus d’attractivité des cellules femelles.","B.Les différences avec la reproduction des plantes terrestres.","C.La constitution de certains organismes aquatiques.","D.L’influence de la météorologie sur leur fécondation."],"correct":"A","audio":"https://fuck-tcf-media.satyanarayana1999-sn.workers.dev/downloads/test40/test40_q39_audio.mp3","image":""}];
+
+let current = 0;
+
+const responses =
+  Array(QUESTIONS.length).fill(null);
+
+const checked =
+  Array(QUESTIONS.length).fill(false);
+
+function letter(i) {
+  return String.fromCharCode(65 + i);
+}
+
+function choose(i) {
+  if (checked[current]) return;
+
+  responses[current] = i;
+  render();
+}
+
+function checkAnswer() {
+
+  if (responses[current] === null) {
+    alert('Please select an answer first.');
+    return;
+  }
+
+  checked[current] = true;
+  render();
+}
+
+function next() {
+  if (current < QUESTIONS.length - 1) {
+    current++;
+    render();
+  }
+}
+
+function previous() {
+  if (current > 0) {
+    current--;
+    render();
+  }
+}
+
+function goTo(index) {
+  current = index;
+  render();
+}
+
+function finish() {
+
+  let score = 0;
+
+  QUESTIONS.forEach((q, i) => {
+
+    if (
+      responses[i] !== null &&
+      letter(responses[i]) === q.correct
+    ) {
+      score++;
+    }
+  });
+
+  const percent =
+    Math.round(
+      score / QUESTIONS.length * 100
+    );
+
+  const box =
+    document.getElementById('results');
+
+  box.style.display = 'block';
+
+  box.innerHTML = `
+    <div class="score">
+      ${score}/${QUESTIONS.length}
+    </div>
+
+    <p>
+      Score: ${percent}%
+    </p>
+  `;
+
+  box.scrollIntoView({
+    behavior: 'smooth'
+  });
+}
+
+function resetTest() {
+
+  if (!confirm('Reset the complete test?')) {
+    return;
+  }
+
+  responses.fill(null);
+  checked.fill(false);
+  current = 0;
+
+  document.getElementById(
+    'results'
+  ).style.display = 'none';
+
+  render();
+}
+
+function renderNavigation() {
+
+  const nav =
+    document.getElementById('nav');
+
+  nav.innerHTML = '';
+
+  QUESTIONS.forEach((q, i) => {
+
+    const b =
+      document.createElement('button');
+
+    b.textContent =
+      'Q' + q.number;
+
+    if (i === current) {
+      b.classList.add('current');
+    }
+
+    if (responses[i] !== null) {
+      b.classList.add('answered');
+    }
+
+    b.onclick =
+      () => goTo(i);
+
+    nav.appendChild(b);
+  });
+}
+
+function render() {
+
+  const q =
+    QUESTIONS[current];
+
+  document.getElementById(
+    'progress'
+  ).textContent =
+    'Question ' +
+    (current + 1) +
+    ' of ' +
+    QUESTIONS.length;
+
+  let image = '';
+
+  if (q.image) {
+    image = `
+      <img
+        src="${q.image}"
+        class="question-image"
+        alt="Question image"
+      >
+    `;
+  }
+
+  let audio = `
+    <audio
+      controls
+      preload="metadata"
+      src="${q.audio}"
+    ></audio>
+  `;
+
+  let options = '';
+
+  q.options.forEach((option, i) => {
+
+    const classes =
+      ['option'];
+
+    if (
+      responses[current] === i
+    ) {
+      classes.push('selected');
+    }
+
+    if (checked[current]) {
+
+      if (
+        letter(i) === q.correct
+      ) {
+        classes.push('correct');
+      }
+
+      if (
+        responses[current] === i &&
+        letter(i) !== q.correct
+      ) {
+        classes.push('wrong');
+      }
+    }
+
+    options += `
+      <button
+        class="${classes.join(' ')}"
+        onclick="choose(${i})"
+      >
+        ${option}
+      </button>
+    `;
+  });
+
+  let feedback = '';
+
+  if (checked[current]) {
+
+    const selected =
+      letter(responses[current]);
+
+    feedback =
+      selected === q.correct
+        ? '✓ Correct'
+        : 'Correct answer: ' + q.correct;
+  }
+
+  document.getElementById(
+    'card'
+  ).innerHTML = `
+
+    ${image}
+
+    ${audio}
+
+    <div class="question-text">
+      ${q.question || ''}
+    </div>
+
+    ${options}
+
+    <div class="feedback">
+      ${feedback}
+    </div>
+
+    <div class="controls">
+
+      <button
+        class="btn secondary"
+        onclick="previous()"
+      >
+        ← Previous
+      </button>
+
+      <button
+        class="btn primary"
+        onclick="checkAnswer()"
+      >
+        Check Answer
+      </button>
+
+      <button
+        class="btn secondary"
+        onclick="next()"
+      >
+        Next →
+      </button>
+
+      <button
+        class="btn primary"
+        onclick="finish()"
+      >
+        Finish Test
+      </button>
+
+      <button
+        class="btn secondary"
+        onclick="resetTest()"
+      >
+        Reset
+      </button>
+
+    </div>
+  `;
+
+  renderNavigation();
+}
+
+render();
+
+</script>
+
+<script src="/listening-progress.js"></script>
+
+</body>
+
+</html>
