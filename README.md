@@ -53,8 +53,14 @@ email without replacing their password hash.
 - Interactive question runner, flags, navigation, progress, and results
 - Light/dark themes and local browser persistence
 
-## Production integrations
+## Stripe payments
 
-User storage is persistent. Payment signature verification, user entitlements,
-question/audio storage, and durable attempt history still need production
-integrations.
+Set `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`,
+`STRIPE_WEBHOOK_SECRET`, and the three `STRIPE_PRICE_*` IDs. In Stripe, point a
+webhook endpoint at `https://your-domain.example/api/stripe/webhook` and subscribe
+to `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`checkout.session.async_payment_failed`, and `checkout.session.expired`.
+
+Checkout includes Apple Pay when the customer and device are eligible.
+International card acceptance follows the currencies and payment methods enabled
+for the Stripe account.

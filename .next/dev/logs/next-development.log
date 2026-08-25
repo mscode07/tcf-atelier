@@ -1,17 +1,58 @@
-{"timestamp":"00:00:00.370","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:00.834","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:00:05.552","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:01:11.737","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:01:28.217","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:01:34.118","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:01:45.169","source":"Browser","level":"WARN","message":"Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior=\"smooth\"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior"}
-{"timestamp":"00:01:45.177","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mDetected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior=\\\"smooth\\\"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior\\u001b[39m\""}
-{"timestamp":"00:01:56.843","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:04:16.408","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:04:21.439","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:07:29.267","source":"Server","level":"LOG","message":"✓ Compiled in 25ms"}
-{"timestamp":"00:10:43.358","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:11:06.808","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:11:27.028","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:11:45.771","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"00:12:04.717","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:00:00.501","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:04.583","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"02:10:46.792","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"02:10:53.075","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"02:11:01.071","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"02:11:02.945","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"02:11:04.164","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"02:11:26.395","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"02:11:40.366","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"02:12:02.553","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"02:12:03.851","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:46:56.777","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:47:02.668","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:48:47.047","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:48:53.895","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:48:55.760","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:49:00.530","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:49:05.294","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:50:14.399","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:50:51.103","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:53:40.818","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:53:43.946","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:53:45.679","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:53:47.915","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:53:49.651","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"08:53:52.179","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"09:01:31.764","source":"Server","level":"LOG","message":"✓ Compiled in 114ms"}
+{"timestamp":"09:02:15.130","source":"Server","level":"LOG","message":"✓ Compiled in 32ms"}
+{"timestamp":"09:02:52.096","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
+{"timestamp":"09:08:06.550","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"09:08:26.034","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"09:10:33.179","source":"Server","level":"LOG","message":"✓ Compiled in 7ms"}
+{"timestamp":"09:10:58.167","source":"Server","level":"LOG","message":"✓ Compiled in 24ms"}
+{"timestamp":"09:29:02.211","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"09:29:17.826","source":"Server","level":"ERROR","message":"[auth][error] CredentialsSignin: Read more at https://errors.authjs.dev#credentialssignin"}
+{"timestamp":"09:29:17.827","source":"Server","level":"ERROR","message":"    at Module.callback (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_@auth_core_139_cz6._.js:1182:30)\n    at async AuthInternal (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_@auth_core_139_cz6._.js:2511:24)\n    at async Auth (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_@auth_core_139_cz6._.js:350:34)\n    at async AppRouteRouteModule.do (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:5:42793)\n    at async AppRouteRouteModule.handle (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:5:50547)\n    at async responseGenerator (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_next_06xpkpi._.js:5328:30)\n    at async AppRouteRouteModule.handleResponse (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:1:250160)\n    at async handleResponse (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_next_06xpkpi._.js:5400:32)\n    at async Module.handler (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_next_06xpkpi._.js:5520:9)\n    at async DevServer.renderToResponseWithComponentsImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:1537:9)\n    at async DevServer.renderPageComponent (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:1589:24)\n    at async DevServer.renderToResponseImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:1639:32)\n    at async DevServer.pipeImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:1088:25)\n    at async NextNodeServer.handleCatchallRenderRequest (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/next-server.js:338:17)\n    at async DevServer.handleRequestImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:979:17)\n    at async /Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/dev/next-dev-server.js:426:20\n    at async Span.traceAsyncFn (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/trace/trace.js:164:20)\n    at async DevServer.handleRequest (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/dev/next-dev-server.js:422:24)\n    at async invokeRender (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/lib/router-server.js:306:21)\n    at async handleRequest (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/lib/router-server.js:508:24)\n    at async requestHandlerImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/lib/router-server.js:565:13)\n    at async Server.requestListener (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/lib/start-server.js:225:13)"}
+{"timestamp":"23:43:36.899","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"23:45:23.697","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"23:45:44.342","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"23:51:43.327","source":"Server","level":"LOG","message":"✓ Compiled in 36ms"}
+{"timestamp":"24:00:48.958","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"25:20:08.319","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"25:20:25.584","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"28:38:46.780","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:38:51.775","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:38:53.391","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:38:56.512","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:38:57.994","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:41:07.757","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:41:25.067","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:41:31.364","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:41:32.555","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:41:45.828","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:44:25.100","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:44:32.735","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:45:02.777","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:45:05.438","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"28:45:06.791","source":"Server","level":"LOG","message":"  Reload env: .env"}
