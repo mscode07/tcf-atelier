@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
-import { courseModules, practiceTests, testAttempts, users } from "@/lib/db/schema";
+import { getAccessByEmail } from "@/lib/access";
+import { courseModules, practiceTests, testAttempts } from "@/lib/db/schema";
 
 type ModuleKey = "listening" | "reading";
 const MODULES: ModuleKey[] = ["listening", "reading"];
 
 async function currentUserId() {
   const session = await auth();
-  const email = session?.user?.email?.trim().toLowerCase();
-  if (!email) return null;
-  const [user] = await getDb().select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-  return user?.id ?? null;
+  const access = await getAccessByEmail(session?.user?.email);
+  return access.active ? access.userId : null;
 }
 
 export async function GET() {

@@ -33,17 +33,55 @@ export default function HomePage() {
   const [showMode, setShowMode] = useState(false);
   const [toast, setToastState] = useState("");
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
-  const setToast = (message: string) => setToastState(message === "Demo Google account connected" ? "" : message);
+  const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
+  const [accessActive, setAccessActive] = useState(false);
+  const setToast = (message: string) => {
+    const legacyPlan = message.match(/^(7|15|30) days plan/);
+    if (legacyPlan) { void startCheckout(`${legacyPlan[1]}-days`); return; }
+    setToastState(message === "Demo Google account connected" ? "" : message);
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as Theme | null;
     if (savedTheme) setTheme(savedTheme);
-    fetch("/api/auth/session").then(response => response.json()).then(({ user: sessionUser }: { user?: User | null }) => {
-      if (sessionUser) { setUser(sessionUser); setRoute("dashboard"); }
-    }).catch(() => undefined);
-    const authStatus = new URLSearchParams(window.location.search).get("auth");
+    const query = new URLSearchParams(window.location.search);
+    const authStatus = query.get("auth");
+    const paymentStatus = query.get("payment");
+    const checkoutSessionId = query.get("session_id");
+    const accessStatus = query.get("access");
     if (authStatus === "error") setToast("Google sign-in failed. Check your Auth.js callback URL.");
-    if (authStatus) window.history.replaceState({}, "", window.location.pathname);
+    if (paymentStatus === "cancelled") setToast("Checkout cancelled. You have not been charged.");
+    if (accessStatus === "subscription_required") setToast("An active plan is required. Choose a pack to continue.");
+    if (accessStatus === "signin_required") setToast("Sign in and choose a plan to access practice modules.");
+    if (authStatus || paymentStatus || accessStatus) window.history.replaceState({}, "", window.location.pathname);
+    void (async () => {
+      try {
+        const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
+        const { user: sessionUser } = await sessionResponse.json() as { user?: User | null };
+        if (!sessionUser) return;
+        setUser(sessionUser);
+        setRoute("dashboard");
+
+        if (paymentStatus === "success" && checkoutSessionId) {
+          setToast("Confirming your payment…");
+          const verificationResponse = await fetch("/api/stripe/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: checkoutSessionId }),
+          });
+          const verification = await verificationResponse.json() as { active?: boolean; error?: string };
+          if (!verificationResponse.ok || !verification.active) throw new Error(verification.error || "Payment could not be activated.");
+          setAccessActive(true);
+          setToast("Payment confirmed — your modules are now unlocked.");
+          return;
+        }
+
+        const accessResponse = await fetch("/api/access", { cache: "no-store" });
+        if (accessResponse.ok) setAccessActive(Boolean((await accessResponse.json() as { active?: boolean }).active));
+      } catch (error) {
+        setToast(error instanceof Error ? error.message : "Could not verify your access.");
+      }
+    })();
   }, []);
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("theme", theme); }, [theme]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(""), 2200); return () => clearTimeout(timer); }, [toast]);
@@ -60,8 +98,14 @@ export default function HomePage() {
     const next = { email: email.trim().toLowerCase() };
     setUser(next); setRoute("dashboard");
   };
-  const logout = () => { void signOut({ redirect: false }); setUser(null); localStorage.removeItem("tcf-user"); setRoute("home"); };
+  const logout = () => { void signOut({ redirect: false }); setUser(null); setAccessActive(false); localStorage.removeItem("tcf-user"); setRoute("home"); };
   const openModule = (nextModule: ModuleName) => {
+    if (!accessActive) {
+      setToast("Choose an active plan to unlock the practice modules.");
+      setRoute("home");
+      setTimeout(() => document.querySelector("#pricing")?.scrollIntoView(), 0);
+      return;
+    }
     setModuleName(nextModule);
     setRoute(nextModule === "Writing" || nextModule === "Speaking" ? "comingSoon" : "tests");
   };
@@ -78,6 +122,20 @@ export default function HomePage() {
   };
   const nextQuestion = () => questionIndex < questions.length - 1 ? setQuestionIndex(questionIndex + 1) : setRoute("results");
   const toggleFlag = () => setFlagged(current => { const updated = new Set(current); updated.has(questionIndex) ? updated.delete(questionIndex) : updated.add(questionIndex); return updated; });
+  const startCheckout = async (plan: string) => {
+    if (checkoutPlan) return;
+    if (!user) { setToast("Sign in first, then choose your plan."); setRoute("auth"); return; }
+    setCheckoutPlan(plan);
+    try {
+      const response = await fetch("/api/stripe/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan }) });
+      const result = await response.json() as { url?: string; error?: string };
+      if (!response.ok || !result.url) throw new Error(result.error || "Checkout could not be started.");
+      window.location.assign(result.url);
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Checkout could not be started.");
+      setCheckoutPlan(null);
+    }
+  };
   const nav = (minimal = false) => <nav className="nav"><button className="brand" onClick={() => setRoute(user ? "dashboard" : "home")}>tcf<span>·</span>atelier</button><div className="nav-actions">{!minimal && <><button className="nav-link" onClick={() => setRoute("home")}>Features</button><button className="nav-link" onClick={() => { setRoute("home"); setTimeout(() => document.querySelector("#pricing")?.scrollIntoView(), 0); }}>Pricing</button></>}{user ? <><button className="nav-link" onClick={() => setRoute("dashboard")}>Dashboard</button><button className="nav-link" onClick={logout}>Sign out</button></> : <button className="btn" onClick={() => setRoute("auth")}>Sign in</button>}<button className="icon-btn" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Toggle theme">{theme === "dark" ? "☀" : "☾"}</button></div></nav>;
 
   const Home = () => <div className="shell">{nav()}<main><section className="hero"><div><div className="eyebrow">The focused route to your TCF score</div><h1>French practice,<br/><em>without the noise.</em></h1><p className="lede">Forty full-length TCF practice tests, clear explanations, and a calmer way to build exam confidence — from your first A1 question to C1.</p><div className="hero-actions"><button className="btn" onClick={() => setRoute(user ? "dashboard" : "auth")}>Start practicing →</button><button className="btn secondary" onClick={() => document.querySelector("#features")?.scrollIntoView()}>See how it works</button></div><div className="mini-proof"><span>✓ 40 full tests</span><span>✓ Instant explanations</span><span>✓ Real score tracking</span></div></div><div className="preview"><div className="preview-top"><span className="mono">Review mode</span><span>03 / 39</span></div><div className="question-card"><span className="level">A1</span><div className="passage">Le train pour Lyon partira exceptionnellement voie 8.</div><div className="choice">A. Acheter un billet</div><div className="choice active">B. Changer de quai</div><div className="choice">C. Appeler un taxi</div></div></div></section><div className="stats-strip"><div className="stat"><strong>40</strong><span>curated practice tests</span></div><div className="stat"><strong>699</strong><span>CRS score mapping</span></div><div className="stat"><strong>2</strong><span>practice modes</span></div></div><section className="section" id="features"><div className="section-head"><div><div className="eyebrow">A complete practice room</div><h2>Learn from every answer.</h2></div><p className="section-copy">Train under pressure or slow things down. Every session builds a clear picture of where you are and what to do next.</p></div><div className="feature-grid">{[["01","Listen","Exam-style audio prompts and transcripts."],["02","Read","Authentic notices, messages, and longer texts."],["03","Write","Structured prompts from A1 through C1."],["04","Speak","Guided scenarios with timed preparation."]].map(item => <article className="feature" key={item[0]}><span className="num">{item[0]}</span><h3>{item[1]}</h3><p>{item[2]}</p></article>)}</div></section><section className="section" id="pricing"><div className="pricing"><div><div className="eyebrow">Simple access, no subscription</div><h2>Pick the time you need.</h2><p className="pricing-copy">All plans unlock every module, explanation, transcript and progress report.</p></div><div className="price-cards">{[["7 days","$10"],["15 days","$25"],["30 days","$45"]].map((plan, index) => <div className={`price-card ${index === 2 ? "best" : ""}`} key={plan[0]}><div><small>{plan[0]}</small><strong>{plan[1]}</strong></div><button className="btn" onClick={() => setToast(`${plan[0]} plan (${plan[1]}) — Razorpay is ready for API keys`)}>Choose</button></div>)}</div></div></section></main></div>;

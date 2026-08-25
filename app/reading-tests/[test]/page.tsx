@@ -1,9 +1,14 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { auth } from "@/auth";
+import { getAccessByEmail } from "@/lib/access";
 import ReadingTestClient from "./ReadingTestClient";
 
 export default async function ReadingTestPage({ params, searchParams }: { params: Promise<{ test: string }>; searchParams: Promise<{ mode?: string }> }) {
+  const session = await auth();
+  const access = await getAccessByEmail(session?.user?.email);
+  if (!access.active) redirect(`/?access=${session?.user?.email ? "subscription_required" : "signin_required"}`);
   const { test } = await params;
   const { mode } = await searchParams;
   if (!/^\d{2}$/.test(test) || Number(test) < 1 || Number(test) > 40) notFound();
