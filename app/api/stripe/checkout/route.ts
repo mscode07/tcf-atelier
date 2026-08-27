@@ -20,17 +20,21 @@ export async function POST(request: Request) {
     const stripe = getStripe();
     const price = await stripe.prices.retrieve(priceId);
     if (!price.active || price.unit_amount == null || !price.currency) return NextResponse.json({ error: "This plan is not currently available." }, { status: 409 });
+    if (price.unit_amount !== planConfig.amountMinor || price.currency.toLowerCase() !== planConfig.currency) {
+      console.error("Stripe price does not match configured package", { planCode, priceId, expectedAmount: planConfig.amountMinor, actualAmount: price.unit_amount, expectedCurrency: planConfig.currency, actualCurrency: price.currency });
+      return NextResponse.json({ error: "This plan is temporarily unavailable because its Stripe price is misconfigured." }, { status: 409 });
+    }
 
     const db = getDb();
     const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
     if (!user) return NextResponse.json({ error: "Your account could not be found. Please sign in again." }, { status: 404 });
     const now = new Date();
-    const [plan] = await db.insert(pricingPlans).values({ code: planCode, name: planConfig.label, durationDays: planConfig.durationDays, priceMinor: price.unit_amount, currency: price.currency.toUpperCase(), isActive: true, updatedAt: now }).onConflictDoUpdate({
+    const [plan] = await db.insert(pricingPlans).values({ code: planCode, name: planConfig.label, durationDays: planConfig.durationDays, priceMinor: planConfig.amountMinor, currency: planConfig.currency.toUpperCase(), isActive: true, updatedAt: now }).onConflictDoUpdate({
       target: pricingPlans.code,
-      set: { name: planConfig.label, durationDays: planConfig.durationDays, priceMinor: price.unit_amount, currency: price.currency.toUpperCase(), isActive: true, updatedAt: now },
+      set: { name: planConfig.label, durationDays: planConfig.durationDays, priceMinor: planConfig.amountMinor, currency: planConfig.currency.toUpperCase(), isActive: true, updatedAt: now },
     }).returning({ id: pricingPlans.id });
     const [subscription] = await db.insert(userSubscriptions).values({ userId: user.id, planId: plan.id }).returning({ id: userSubscriptions.id });
-    const [payment] = await db.insert(payments).values({ userId: user.id, subscriptionId: subscription.id, provider: "stripe", amountMinor: price.unit_amount, currency: price.currency.toUpperCase(), metadata: { planCode } }).returning({ id: payments.id });
+    const [payment] = await db.insert(payments).values({ userId: user.id, subscriptionId: subscription.id, provider: "stripe", amountMinor: planConfig.amountMinor, currency: planConfig.currency.toUpperCase(), metadata: { planCode } }).returning({ id: payments.id });
 
     const origin = new URL(request.url).origin;
     const checkout = await stripe.checkout.sessions.create({
