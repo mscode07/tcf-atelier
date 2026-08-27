@@ -23,6 +23,26 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
   const score = useMemo(() => questions.reduce((total, item, index) => total + (answers[index] === item.correct.charCodeAt(0) - 65 ? 1 : 0), 0), [answers, questions]);
 
   useEffect(() => {
+    const validateAccess = async () => {
+      try {
+        const response = await fetch("/api/access", { cache: "no-store" });
+        if (response.status === 401 || response.status === 403) {
+          window.location.replace("/?access=signin_required");
+          return;
+        }
+        if (response.ok && !((await response.json()) as { active?: boolean }).active) {
+          window.location.replace("/?access=subscription_required");
+        }
+      } catch { /* A transient network failure should not discard in-progress work. */ }
+    };
+    void validateAccess();
+    const timer = window.setInterval(() => void validateAccess(), 30_000);
+    const onVisibilityChange = () => { if (!document.hidden) void validateAccess(); };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", onVisibilityChange); };
+  }, []);
+
+  useEffect(() => {
     const saved = localStorage.getItem(`reading-test-${test}`);
     if (!saved) { setHydrated(true); return; }
     try { const progress = JSON.parse(saved); setAnswers(progress.answers ?? {}); setCurrent(progress.current ?? 0); setSubmitted(Boolean(progress.submitted)); }
@@ -46,16 +66,21 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
     setChecked(previous => new Set(previous).add(current));
     if (mode === "exam") goNext();
   };
-  const finishTest = () => {
-    setFinished(true);
-    setSubmitted(true);
-    void fetch("/api/progress", {
+  const finishTest = async () => {
+    const response = await fetch("/api/progress", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ module: "reading", testNumber: test, status: "completed", score, maxScore: questions.length, answeredCount: Object.keys(answers).length }),
     });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      window.alert(`Progress could not be saved: ${result.error ?? response.status}`);
+      return;
+    }
+    setFinished(true);
+    setSubmitted(true);
   };
-  const goNext = () => current < questions.length - 1 ? setCurrent(current + 1) : finishTest();
+  const goNext = () => current < questions.length - 1 ? setCurrent(current + 1) : void finishTest();
 
   useEffect(() => {
     if (mode !== "exam" || finished || submitted) return;

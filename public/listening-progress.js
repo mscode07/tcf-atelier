@@ -4,10 +4,26 @@
 
   const testNumber = Number(match[1]);
   const mode = new URLSearchParams(window.location.search).get("mode") === "exam" ? "exam" : "review";
-  const theme = localStorage.getItem("theme") === "light" ? "light" : "dark";
-  document.body.dataset.theme = theme;
+  localStorage.removeItem("theme");
   const back = document.querySelector("header a");
   if (back) back.textContent = "← Dashboard";
+
+  function validateAccess() {
+    fetch("/api/access", { credentials: "same-origin", cache: "no-store" })
+      .then(async response => {
+        if (response.status === 401 || response.status === 403) {
+          window.location.replace("/?access=signin_required");
+          return;
+        }
+        if (response.ok && !(await response.json()).active) {
+          window.location.replace("/?access=subscription_required");
+        }
+      })
+      .catch(() => undefined);
+  }
+  validateAccess();
+  window.setInterval(validateAccess, 30_000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) validateAccess(); });
 
   let saveTimer;
   function totals() {
@@ -19,12 +35,17 @@
   }
   function save(status) {
     const result = totals();
-    if (status === "in_progress" && result.answered === 0) return;
-    fetch("/api/progress", {
+    if (status === "in_progress" && result.answered === 0) return Promise.resolve();
+    return fetch("/api/progress", {
       method: "POST", credentials: "same-origin", keepalive: status === "completed",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ module: "listening", testNumber, status, score: result.score, maxScore: QUESTIONS.length, answeredCount: result.answered }),
-    }).catch(() => undefined);
+    }).then(async response => {
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || `Progress save failed (${response.status})`);
+      }
+    });
   }
 
   const originalCheckAnswer = checkAnswer;
@@ -51,20 +72,25 @@
   finish = function () {
     const result = totals();
     const percent = Math.round(result.score / QUESTIONS.length * 100);
-    save("completed");
     const box = document.getElementById("results");
-    box.innerHTML = `<div class="score">${result.score}/${QUESTIONS.length}</div><h2>Listening test complete</h2><p>Score: ${percent}%</p><div class="result-summary"><div><strong>${result.score}</strong><span>Correct</span></div><div><strong>${result.incorrect}</strong><span>Incorrect</span></div><div><strong>${result.skipped}</strong><span>Skipped</span></div></div><div class="result-actions"><button class="btn secondary" onclick="reviewListeningAnswers()">Review answers</button><a class="btn primary" href="/">Back to dashboard</a></div>`;
+    box.innerHTML = `<div class="score">${result.score}/${QUESTIONS.length}</div><h2>Listening test complete</h2><p>Score: ${percent}%</p><p id="progress-save-status">Saving progress…</p><div class="result-summary"><div><strong>${result.score}</strong><span>Correct</span></div><div><strong>${result.incorrect}</strong><span>Incorrect</span></div><div><strong>${result.skipped}</strong><span>Skipped</span></div></div><div class="result-actions"><button class="btn secondary" onclick="reviewListeningAnswers()">Review answers</button><a class="btn primary" href="/">Back to dashboard</a></div>`;
     document.body.classList.add("listening-results");
     box.style.display = "block";
     window.scrollTo({ top: 0, behavior: "smooth" });
     stopClock();
+    save("completed").then(() => {
+      document.getElementById("progress-save-status").textContent = "Progress saved.";
+    }).catch(error => {
+      console.error("Listening progress save failed", error);
+      document.getElementById("progress-save-status").textContent = "Progress could not be saved. Please try ending the test again.";
+    });
   };
 
   document.addEventListener("click", function (event) {
     const button = event.target.closest("button");
     if (!button || !button.classList.contains("option")) return;
     window.clearTimeout(saveTimer);
-    saveTimer = window.setTimeout(() => save("in_progress"), 250);
+    saveTimer = window.setTimeout(() => { save("in_progress").catch(error => console.error("Listening progress save failed", error)); }, 250);
   });
 
   let clock;

@@ -1,58 +1,129 @@
-{"timestamp":"00:00:00.501","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:04.583","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"02:10:46.792","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"02:10:53.075","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"02:11:01.071","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"02:11:02.945","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"02:11:04.164","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"02:11:26.395","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"02:11:40.366","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"02:12:02.553","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"02:12:03.851","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:46:56.777","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:47:02.668","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:48:47.047","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:48:53.895","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:48:55.760","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:49:00.530","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:49:05.294","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:50:14.399","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:50:51.103","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:53:40.818","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:53:43.946","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:53:45.679","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:53:47.915","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:53:49.651","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"08:53:52.179","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"09:01:31.764","source":"Server","level":"LOG","message":"✓ Compiled in 114ms"}
-{"timestamp":"09:02:15.130","source":"Server","level":"LOG","message":"✓ Compiled in 32ms"}
-{"timestamp":"09:02:52.096","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
-{"timestamp":"09:08:06.550","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"09:08:26.034","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"09:10:33.179","source":"Server","level":"LOG","message":"✓ Compiled in 7ms"}
-{"timestamp":"09:10:58.167","source":"Server","level":"LOG","message":"✓ Compiled in 24ms"}
-{"timestamp":"09:29:02.211","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"09:29:17.826","source":"Server","level":"ERROR","message":"[auth][error] CredentialsSignin: Read more at https://errors.authjs.dev#credentialssignin"}
-{"timestamp":"09:29:17.827","source":"Server","level":"ERROR","message":"    at Module.callback (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_@auth_core_139_cz6._.js:1182:30)\n    at async AuthInternal (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_@auth_core_139_cz6._.js:2511:24)\n    at async Auth (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_@auth_core_139_cz6._.js:350:34)\n    at async AppRouteRouteModule.do (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:5:42793)\n    at async AppRouteRouteModule.handle (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:5:50547)\n    at async responseGenerator (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_next_06xpkpi._.js:5328:30)\n    at async AppRouteRouteModule.handleResponse (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:1:250160)\n    at async handleResponse (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_next_06xpkpi._.js:5400:32)\n    at async Module.handler (/Users/mscode07/Documents/ChatGPT/TCF/.next/dev/server/chunks/node_modules_next_06xpkpi._.js:5520:9)\n    at async DevServer.renderToResponseWithComponentsImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:1537:9)\n    at async DevServer.renderPageComponent (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:1589:24)\n    at async DevServer.renderToResponseImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:1639:32)\n    at async DevServer.pipeImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:1088:25)\n    at async NextNodeServer.handleCatchallRenderRequest (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/next-server.js:338:17)\n    at async DevServer.handleRequestImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/base-server.js:979:17)\n    at async /Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/dev/next-dev-server.js:426:20\n    at async Span.traceAsyncFn (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/trace/trace.js:164:20)\n    at async DevServer.handleRequest (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/dev/next-dev-server.js:422:24)\n    at async invokeRender (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/lib/router-server.js:306:21)\n    at async handleRequest (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/lib/router-server.js:508:24)\n    at async requestHandlerImpl (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/lib/router-server.js:565:13)\n    at async Server.requestListener (/Users/mscode07/Documents/ChatGPT/TCF/node_modules/next/dist/server/lib/start-server.js:225:13)"}
-{"timestamp":"23:43:36.899","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"23:45:23.697","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"23:45:44.342","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"23:51:43.327","source":"Server","level":"LOG","message":"✓ Compiled in 36ms"}
-{"timestamp":"24:00:48.958","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"25:20:08.319","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"25:20:25.584","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
-{"timestamp":"28:38:46.780","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:38:51.775","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:38:53.391","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:38:56.512","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:38:57.994","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:41:07.757","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:41:25.067","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:41:31.364","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:41:32.555","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:41:45.828","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:44:25.100","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:44:32.735","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:45:02.777","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:45:05.438","source":"Server","level":"LOG","message":"  Reload env: .env"}
-{"timestamp":"28:45:06.791","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"00:00:00.559","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:01.256","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:00:05.424","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:00:10.690","source":"Server","level":"ERROR","message":"Stripe price does not match configured package {}"}
+{"timestamp":"00:02:40.289","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"00:04:48.120","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"00:05:21.751","source":"Server","level":"LOG","message":"  Reload env: .env"}
+{"timestamp":"00:05:29.861","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:05:33.382","source":"Server","level":"ERROR","message":"Stripe price does not match configured package {}"}
+{"timestamp":"00:05:51.758","source":"Server","level":"LOG","message":"✓ Compiled in 29ms"}
+{"timestamp":"00:05:53.750","source":"Server","level":"LOG","message":"✓ Compiled in 16ms"}
+{"timestamp":"00:05:55.460","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:17:03.902","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:17:26.136","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:18:13.718","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:22:02.160","source":"Server","level":"LOG","message":"✓ Compiled in 29ms"}
+{"timestamp":"00:22:04.365","source":"Server","level":"LOG","message":"✓ Compiled in 18ms"}
+{"timestamp":"00:22:06.638","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:22:08.121","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:22:11.460","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:22:14.579","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:22:20.837","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:22:25.415","source":"Server","level":"LOG","message":"✓ Compiled in 30ms"}
+{"timestamp":"00:22:27.812","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:22:30.671","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:22:41.993","source":"Server","level":"LOG","message":"✓ Compiled in 16ms"}
+{"timestamp":"00:22:42.997","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:22:44.368","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:22:50.708","source":"Server","level":"LOG","message":"✓ Compiled in 122ms"}
+{"timestamp":"00:22:52.386","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:22:55.041","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:23:02.654","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:23:15.239","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"00:23:19.400","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:23:27.533","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:23:37.711","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:23:39.906","source":"Server","level":"LOG","message":"✓ Compiled in 29ms"}
+{"timestamp":"00:23:45.773","source":"Server","level":"LOG","message":"✓ Compiled in 16ms"}
+{"timestamp":"00:23:52.687","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:23:56.390","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:23:58.571","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:24:01.791","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:24:04.137","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:24:07.767","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:24:12.298","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:24:18.219","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:24:23.397","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:24:25.780","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:24:28.481","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:24:35.160","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:24:38.772","source":"Server","level":"LOG","message":"✓ Compiled in 16ms"}
+{"timestamp":"00:24:41.860","source":"Server","level":"LOG","message":"✓ Compiled in 21ms"}
+{"timestamp":"00:24:45.829","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:24:49.998","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:25:58.787","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:26:27.358","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:26:31.554","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:26:34.193","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:27:08.490","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:27:37.132","source":"Browser","level":"WARN","message":"Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior=\"smooth\"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior"}
+{"timestamp":"00:27:37.142","source":"Server","level":"WARN","message":"[browser] \"\\u001b[33mDetected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior=\\\"smooth\\\"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior\\u001b[39m\""}
+{"timestamp":"00:27:56.694","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:28:44.491","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"00:28:49.566","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:28:52.490","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"00:28:55.808","source":"Server","level":"LOG","message":"✓ Compiled in 18ms"}
+{"timestamp":"00:29:03.708","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:29:04.723","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:29:09.845","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:29:14.854","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:29:17.111","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:29:19.138","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:29:21.341","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:29:24.424","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:29:25.517","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:29:26.847","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
+{"timestamp":"00:29:33.331","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:29:37.855","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:29:44.975","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:29:47.948","source":"Server","level":"LOG","message":"✓ Compiled in 18ms"}
+{"timestamp":"00:29:54.354","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:29:59.215","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:30:03.038","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:30:06.765","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
+{"timestamp":"00:30:12.532","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:30:52.263","source":"Server","level":"LOG","message":"✓ Compiled in 16ms"}
+{"timestamp":"00:30:58.831","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:31:05.514","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:31:07.328","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:31:09.734","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:31:12.585","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:31:15.221","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:31:18.582","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:31:23.006","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:31:30.862","source":"Server","level":"LOG","message":"✓ Compiled in 18ms"}
+{"timestamp":"00:31:34.105","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:31:40.770","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:31:44.115","source":"Server","level":"LOG","message":"✓ Compiled in 22ms"}
+{"timestamp":"00:31:59.860","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:32:03.492","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:32:08.301","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:32:17.220","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:32:19.768","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:32:23.580","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:32:25.498","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:32:32.168","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:32:35.448","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:32:37.054","source":"Server","level":"LOG","message":"✓ Compiled in 11ms"}
+{"timestamp":"00:32:38.154","source":"Server","level":"LOG","message":"✓ Compiled in 18ms"}
+{"timestamp":"00:32:41.247","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"00:32:51.722","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:32:53.871","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:33:09.051","source":"Server","level":"LOG","message":"✓ Compiled in 17ms"}
+{"timestamp":"00:33:28.706","source":"Server","level":"LOG","message":"✓ Compiled in 12ms"}
+{"timestamp":"00:33:42.413","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:33:55.308","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:34:04.128","source":"Server","level":"LOG","message":"✓ Compiled in 15ms"}
+{"timestamp":"00:34:46.845","source":"Server","level":"LOG","message":"✓ Compiled in 19ms"}
+{"timestamp":"00:34:49.460","source":"Server","level":"LOG","message":"✓ Compiled in 14ms"}
+{"timestamp":"00:34:58.083","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:35:01.444","source":"Server","level":"LOG","message":"✓ Compiled in 13ms"}
+{"timestamp":"00:35:29.480","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:35:29.535","source":"Browser","level":"ERROR","message":"A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\nhttps://react.dev/link/hydration-mismatch\n\n  ...\n    <LoadingBoundary name=\"/\" loading={null}>\n      <HTTPAccessFallbackBoundary notFound={{...}} forbidden={undefined} unauthorized={undefined}>\n        <HTTPAccessFallbackErrorBoundary pathname=\"/\" notFound={{...}} forbidden={undefined} unauthorized={undefined} ...>\n          <RedirectBoundary>\n            <RedirectErrorBoundary router={{...}}>\n              <InnerLayoutRouter url=\"/\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>\n                <SegmentViewNode type=\"page\" pagePath=\"page.tsx\">\n                  <SegmentTrieNode>\n                  <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>\n                    <HomePage params={Promise} searchParams={Promise}>\n                      <Home>\n                        <div className=\"shell\">\n                          <nav>\n                          <main>\n                            <section className=\"hero\">\n                              <div>\n                                <div>\n                                <h1>\n                                <p>\n                                <div>\n                                <div\n+                                 className=\"flex gap-10 font-medium text-lg mt-4 text-gray-500\"\n-                                 className=\"mini-proof font-medium text-xl\"\n                                >\n                                  <span\n-                                   className=\"\"\n                                  >\n+                                   ✅ 40 full tests\n                                  ...\n                              ...\n                            <div className=\"stats-strip\">\n                              <div\n+                               className=\"flex gap-10 font-medium text-lg mt-4 text-gray-500\"\n-                               className=\"stat\"\n                              >\n                                <strong>\n                                <span\n-                                 className=\"font-bold\"\n                                >\n+                                 curated practice tests\n                              ...\n                            ...\n                      ...\n                ...\n              ...\n "}
+{"timestamp":"00:35:29.536","source":"Server","level":"ERROR","message":"[browser] \"A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\\n\\n- A server/client branch `if (typeof window !== 'undefined')`.\\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\\n- Date formatting in a user's locale which doesn't match the server.\\n- External changing data without sending a snapshot of it along with the HTML.\\n- Invalid HTML tag nesting.\\n\\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\\n\\nhttps://react.dev/link/hydration-mismatch\\n\\n  ...\\n    <LoadingBoundary name=\\\"/\\\" loading={null}>\\n      <HTTPAccessFallbackBoundary notFound={{...}} forbidden={undefined} unauthorized={undefined}>\\n        <HTTPAccessFallbackErrorBoundary pathname=\\\"/\\\" notFound={{...}} forbidden={undefined} unauthorized={undefined} ...>\\n          <RedirectBoundary>\\n            <RedirectErrorBoundary router={{...}}>\\n              <InnerLayoutRouter url=\\\"/\\\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>\\n                <SegmentViewNode type=\\\"page\\\" pagePath=\\\"page.tsx\\\">\\n                  <SegmentTrieNode>\\n                  <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>\\n                    <HomePage params={Promise} searchParams={Promise}>\\n                      <Home>\\n                        <div className=\\\"shell\\\">\\n                          <nav>\\n                          <main>\\n                            <section className=\\\"hero\\\">\\n                              <div>\\n                                <div>\\n                                <h1>\\n                                <p>\\n                                <div>\\n                                <div\\n+                                 className=\\\"flex gap-10 font-medium text-lg mt-4 text-gray-500\\\"\\n-                                 className=\\\"mini-proof font-medium text-xl\\\"\\n                                >\\n                                  <span\\n-                                   className=\\\"\\\"\\n                                  >\\n+                                   ✅ 40 full tests\\n                                  ...\\n                              ...\\n                            <div className=\\\"stats-strip\\\">\\n                              <div\\n+                               className=\\\"flex gap-10 font-medium text-lg mt-4 text-gray-500\\\"\\n-                               className=\\\"stat\\\"\\n                              >\\n                                <strong>\\n                                <span\\n-                                 className=\\\"font-bold\\\"\\n                                >\\n+                                 curated practice tests\\n                              ...\\n                            ...\\n                      ...\\n                ...\\n              ...\\n\" \"\""}
+{"timestamp":"00:35:32.530","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:37:01.169","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:37:57.968","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:38:06.051","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:41:30.697","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}

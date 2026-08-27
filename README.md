@@ -1,4 +1,4 @@
-# TCF Atelier
+# TCF Material
 
 A responsive, interactive prototype for a TCF French-language practice platform.
 
@@ -51,7 +51,7 @@ email without replacing their password hash.
 - Forty interactive 39-question Reading tests with selectable answers, checking, progress, and results
 - Forty-test browser and exam/review mode selection
 - Interactive question runner, flags, navigation, progress, and results
-- Light/dark themes and local browser persistence
+- Consistent light theme
 
 ## Stripe payments
 
@@ -64,3 +64,9 @@ to `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
 Checkout includes Apple Pay when the customer and device are eligible.
 International card acceptance follows the currencies and payment methods enabled
 for the Stripe account.
+
+The three one-time Stripe Prices must be configured as USD $10 for 7 days,
+USD $25 for 30 days, and USD $40 for 60 days. Checkout and fulfillment reject
+any Price whose amount, currency, or access duration does not match the package.
+Module access is checked server-side on every protected request and expires at
+the exact purchased duration measured from the successful payment timestamp.

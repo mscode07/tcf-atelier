@@ -3,65 +3,149 @@
 import { FormEvent, useEffect, useState } from "react";
 import { signIn, signOut } from "next-auth/react";
 
-type Route = "home" | "auth" | "dashboard" | "tests" | "exam" | "results" | "comingSoon";
-type Theme = "light" | "dark";
-type PracticeMode = "exam" | "review";
+type Route =
+  | "home"
+  | "auth"
+  | "dashboard"
+  | "tests"
+  | "exam"
+  | "results"
+  | "comingSoon";
 type ModuleName = "Listening" | "Reading" | "Writing" | "Speaking";
 type User = { email: string };
-type Question = { level: string; prompt: string; ask: string; answers: string[]; correct: number };
-type ModuleProgressData = { tests: { testNumber: number; status: "completed" | "in_progress"; percentage: number }[]; attempted: number; completed: number; average: number; best: number; recentScores: number[] };
-type ProgressData = { modules: { listening: ModuleProgressData; reading: ModuleProgressData }; overall: { attempted: number; completed: number; average: number } };
+type Question = {
+  level: string;
+  prompt: string;
+  ask: string;
+  answers: string[];
+  correct: number;
+};
+type ModuleProgressData = {
+  tests: {
+    testNumber: number;
+    status: "completed" | "in_progress";
+    percentage: number;
+  }[];
+  attempted: number;
+  completed: number;
+  average: number;
+  best: number;
+  recentScores: number[];
+};
+type ProgressData = {
+  modules: { listening: ModuleProgressData; reading: ModuleProgressData };
+  overall: { attempted: number; completed: number; average: number };
+};
 
 const questions: Question[] = [
-  { level: "A1", prompt: "ÉTUDIANTS INTERNATIONAUX : NE RESTEZ PAS SEULS !\nInscrivez-vous dans l’association de l’Université pour discuter avec des étudiants français, participer à des groupes de conversation et faire des activités ensemble.", ask: "Que propose cette association ?", answers: ["Des cours particuliers", "Des jobs pendant le week-end", "Des rencontres entre jeunes", "Des voyages à l’étranger"], correct: 2 },
-  { level: "A1", prompt: "Le train pour Lyon partira exceptionnellement voie 8 avec un retard de dix minutes.", ask: "Que doivent faire les voyageurs ?", answers: ["Changer de quai", "Acheter un billet", "Attendre une heure", "Prendre un autobus"], correct: 0 },
-  { level: "A2", prompt: "Bonjour Léa, je serai en retard au dîner. Commencez sans moi, j’arrive vers vingt heures trente.", ask: "Pourquoi cette personne écrit-elle ?", answers: ["Pour annuler un rendez-vous", "Pour prévenir d’un retard", "Pour changer de restaurant", "Pour inviter une amie"], correct: 1 },
-  { level: "B1", prompt: "La mairie ouvre une nouvelle médiathèque samedi. Les inscriptions seront gratuites pendant tout le week-end.", ask: "Quelle information est annoncée ?", answers: ["Une fermeture temporaire", "Un tarif réduit", "Une inauguration", "Un changement d’adresse"], correct: 2 },
-  { level: "B2", prompt: "Selon l’étude, les salariés qui organisent de courtes pauses régulières maintiennent plus longtemps leur concentration.", ask: "Que recommande implicitement cette étude ?", answers: ["De travailler chez soi", "De raccourcir la journée", "De faire des pauses", "De changer de métier"], correct: 2 }
+  {
+    level: "A1",
+    prompt:
+      "ÉTUDIANTS INTERNATIONAUX : NE RESTEZ PAS SEULS !\nInscrivez-vous dans l’association de l’Université pour discuter avec des étudiants français, participer à des groupes de conversation et faire des activités ensemble.",
+    ask: "Que propose cette association ?",
+    answers: [
+      "Des cours particuliers",
+      "Des jobs pendant le week-end",
+      "Des rencontres entre jeunes",
+      "Des voyages à l’étranger",
+    ],
+    correct: 2,
+  },
+  {
+    level: "A1",
+    prompt:
+      "Le train pour Lyon partira exceptionnellement voie 8 avec un retard de dix minutes.",
+    ask: "Que doivent faire les voyageurs ?",
+    answers: [
+      "Changer de quai",
+      "Acheter un billet",
+      "Attendre une heure",
+      "Prendre un autobus",
+    ],
+    correct: 0,
+  },
+  {
+    level: "A2",
+    prompt:
+      "Bonjour Léa, je serai en retard au dîner. Commencez sans moi, j’arrive vers vingt heures trente.",
+    ask: "Pourquoi cette personne écrit-elle ?",
+    answers: [
+      "Pour annuler un rendez-vous",
+      "Pour prévenir d’un retard",
+      "Pour changer de restaurant",
+      "Pour inviter une amie",
+    ],
+    correct: 1,
+  },
+  {
+    level: "B1",
+    prompt:
+      "La mairie ouvre une nouvelle médiathèque samedi. Les inscriptions seront gratuites pendant tout le week-end.",
+    ask: "Quelle information est annoncée ?",
+    answers: [
+      "Une fermeture temporaire",
+      "Un tarif réduit",
+      "Une inauguration",
+      "Un changement d’adresse",
+    ],
+    correct: 2,
+  },
+  {
+    level: "B2",
+    prompt:
+      "Selon l’étude, les salariés qui organisent de courtes pauses régulières maintiennent plus longtemps leur concentration.",
+    ask: "Que recommande implicitement cette étude ?",
+    answers: [
+      "De travailler chez soi",
+      "De raccourcir la journée",
+      "De faire des pauses",
+      "De changer de métier",
+    ],
+    correct: 2,
+  },
 ];
 
 export default function HomePage() {
   const [route, setRoute] = useState<Route>("home");
-  const [theme, setTheme] = useState<Theme>("dark");
   const [user, setUser] = useState<User | null>(null);
   const [moduleName, setModuleName] = useState<ModuleName>("Listening");
   const [test, setTest] = useState(1);
-  const [mode, setMode] = useState<PracticeMode>("review");
+  const [mode] = useState<"exam" | "review">("review");
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [flagged, setFlagged] = useState<Set<number>>(new Set());
-  const [showMode, setShowMode] = useState(false);
   const [toast, setToastState] = useState("");
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
   const [accessActive, setAccessActive] = useState(false);
   const setToast = (message: string) => {
     const legacyPlan = message.match(/^(7|15|30) days plan/);
-    if (legacyPlan) { void startCheckout(`${legacyPlan[1]}-days`); return; }
+    if (legacyPlan) {
+      void startCheckout(`${legacyPlan[1]}-days`);
+      return;
+    }
     setToastState(message === "Demo Google account connected" ? "" : message);
   };
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
-    if (savedTheme) setTheme(savedTheme);
     const query = new URLSearchParams(window.location.search);
     const authStatus = query.get("auth");
     const paymentStatus = query.get("payment");
     const checkoutSessionId = query.get("session_id");
     const accessStatus = query.get("access");
-    if (authStatus === "error") setToast("Google sign-in failed. Check your Auth.js callback URL.");
-    if (paymentStatus === "cancelled") setToast("Checkout cancelled. You have not been charged.");
-    if (accessStatus === "subscription_required") setToast("An active plan is required. Choose a pack to continue.");
-    if (accessStatus === "signin_required") setToast("Sign in and choose a plan to access practice modules.");
-    if (authStatus || paymentStatus || accessStatus) window.history.replaceState({}, "", window.location.pathname);
+    if (authStatus === "error")
+      setToast("Google sign-in failed. Check your Auth.js callback URL.");
+    if (paymentStatus === "cancelled")
+      setToast("Checkout cancelled. You have not been charged.");
+    if (accessStatus === "subscription_required")
+      setToast("An active plan is required. Choose a pack to continue.");
+    if (accessStatus === "signin_required")
+      setToast("Sign in and choose a plan to access practice modules.");
+    if (authStatus || paymentStatus || accessStatus)
+      window.history.replaceState({}, "", window.location.pathname);
     void (async () => {
       try {
-        const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
-        const { user: sessionUser } = await sessionResponse.json() as { user?: User | null };
-        if (!sessionUser) return;
-        setUser(sessionUser);
-        setRoute("dashboard");
-
+        let paymentWasVerified = false;
         if (paymentStatus === "success" && checkoutSessionId) {
           setToast("Confirming your payment…");
           const verificationResponse = await fetch("/api/stripe/verify", {
@@ -69,36 +153,90 @@ export default function HomePage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sessionId: checkoutSessionId }),
           });
-          const verification = await verificationResponse.json() as { active?: boolean; error?: string };
-          if (!verificationResponse.ok || !verification.active) throw new Error(verification.error || "Payment could not be activated.");
+          const verification = (await verificationResponse.json()) as {
+            active?: boolean;
+            error?: string;
+          };
+          if (!verificationResponse.ok || !verification.active)
+            throw new Error(
+              verification.error || "Payment could not be activated.",
+            );
+          paymentWasVerified = true;
           setAccessActive(true);
           setToast("Payment confirmed — your modules are now unlocked.");
-          return;
         }
 
-        const accessResponse = await fetch("/api/access", { cache: "no-store" });
-        if (accessResponse.ok) setAccessActive(Boolean((await accessResponse.json() as { active?: boolean }).active));
+        const sessionResponse = await fetch("/api/auth/session", {
+          cache: "no-store",
+        });
+        const { user: sessionUser } = (await sessionResponse.json()) as {
+          user?: User | null;
+        };
+        if (!sessionUser) return;
+        setUser(sessionUser);
+        setRoute("dashboard");
+
+        if (paymentWasVerified) return;
+
+        const accessResponse = await fetch("/api/access", {
+          cache: "no-store",
+        });
+        if (accessResponse.ok)
+          setAccessActive(
+            Boolean(
+              ((await accessResponse.json()) as { active?: boolean }).active,
+            ),
+          );
       } catch (error) {
-        setToast(error instanceof Error ? error.message : "Could not verify your access.");
+        setToast(
+          error instanceof Error
+            ? error.message
+            : "Could not verify your access.",
+        );
       }
     })();
   }, []);
-  useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("theme", theme); }, [theme]);
-  useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(""), 2200); return () => clearTimeout(timer); }, [toast]);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 2200);
+    return () => clearTimeout(timer);
+  }, [toast]);
   useEffect(() => {
     if (!user || (route !== "dashboard" && route !== "tests")) return;
-    fetch("/api/progress", { cache: "no-store" }).then(response => response.ok ? response.json() : null).then(setProgressData).catch(() => undefined);
+    fetch("/api/progress", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then(setProgressData)
+      .catch(() => undefined);
   }, [route, user]);
 
   const login = async (email: string) => {
-    if (email === "learner@gmail.com") { void signIn("google", { callbackUrl: "/" }); return; }
-    const password = (document.getElementById("password") as HTMLInputElement | null)?.value ?? "";
-    const result = await signIn("credentials", { email, password, redirect: false });
-    if (!result || result.error) { setToast("Incorrect email or password."); return; }
+    if (email === "learner@gmail.com") {
+      void signIn("google", { callbackUrl: "/" });
+      return;
+    }
+    const password =
+      (document.getElementById("password") as HTMLInputElement | null)?.value ??
+      "";
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+    if (!result || result.error) {
+      setToast("Incorrect email or password.");
+      return;
+    }
     const next = { email: email.trim().toLowerCase() };
-    setUser(next); setRoute("dashboard");
+    setUser(next);
+    setRoute("dashboard");
   };
-  const logout = () => { void signOut({ redirect: false }); setUser(null); setAccessActive(false); localStorage.removeItem("tcf-user"); setRoute("home"); };
+  const logout = () => {
+    void signOut({ redirect: false });
+    setUser(null);
+    setAccessActive(false);
+    localStorage.removeItem("tcf-user");
+    setRoute("home");
+  };
   const openModule = (nextModule: ModuleName) => {
     if (!accessActive) {
       setToast("Choose an active plan to unlock the practice modules.");
@@ -107,58 +245,863 @@ export default function HomePage() {
       return;
     }
     setModuleName(nextModule);
-    setRoute(nextModule === "Writing" || nextModule === "Speaking" ? "comingSoon" : "tests");
+    setRoute(
+      nextModule === "Writing" || nextModule === "Speaking"
+        ? "comingSoon"
+        : "tests",
+    );
   };
-  const beginExam = (nextMode: PracticeMode) => {
+  const beginReview = (selectedTest: number) => {
+    setTest(selectedTest);
     if (moduleName === "Listening") {
-      window.location.href = `/listening-tests/test-${String(test).padStart(2, "0")}.html?mode=${nextMode}`;
+      window.location.href = `/listening-tests/test-${String(selectedTest).padStart(2, "0")}.html?mode=review`;
       return;
     }
     if (moduleName === "Reading") {
-      window.location.href = `/reading-tests/${String(test).padStart(2, "0")}?mode=${nextMode}`;
+      window.location.href = `/reading-tests/${String(selectedTest).padStart(2, "0")}`;
       return;
     }
-    setMode(nextMode); setQuestionIndex(0); setAnswers({}); setFlagged(new Set()); setShowMode(false); setRoute("exam");
+    setQuestionIndex(0);
+    setAnswers({});
+    setFlagged(new Set());
+    setRoute("exam");
   };
-  const nextQuestion = () => questionIndex < questions.length - 1 ? setQuestionIndex(questionIndex + 1) : setRoute("results");
-  const toggleFlag = () => setFlagged(current => { const updated = new Set(current); updated.has(questionIndex) ? updated.delete(questionIndex) : updated.add(questionIndex); return updated; });
+  const nextQuestion = () =>
+    questionIndex < questions.length - 1
+      ? setQuestionIndex(questionIndex + 1)
+      : setRoute("results");
+  const toggleFlag = () =>
+    setFlagged((current) => {
+      const updated = new Set(current);
+      updated.has(questionIndex)
+        ? updated.delete(questionIndex)
+        : updated.add(questionIndex);
+      return updated;
+    });
   const startCheckout = async (plan: string) => {
     if (checkoutPlan) return;
-    if (!user) { setToast("Sign in first, then choose your plan."); setRoute("auth"); return; }
+    if (!user) {
+      setToast("Sign in first, then choose your plan.");
+      setRoute("auth");
+      return;
+    }
     setCheckoutPlan(plan);
     try {
-      const response = await fetch("/api/stripe/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan }) });
-      const result = await response.json() as { url?: string; error?: string };
-      if (!response.ok || !result.url) throw new Error(result.error || "Checkout could not be started.");
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const result = (await response.json()) as {
+        url?: string;
+        error?: string;
+      };
+      if (!response.ok || !result.url)
+        throw new Error(result.error || "Checkout could not be started.");
       window.location.assign(result.url);
     } catch (error) {
-      setToast(error instanceof Error ? error.message : "Checkout could not be started.");
+      setToast(
+        error instanceof Error
+          ? error.message
+          : "Checkout could not be started.",
+      );
       setCheckoutPlan(null);
     }
   };
-  const nav = (minimal = false) => <nav className="nav"><button className="brand" onClick={() => setRoute(user ? "dashboard" : "home")}>tcf<span>·</span>atelier</button><div className="nav-actions">{!minimal && <><button className="nav-link" onClick={() => setRoute("home")}>Features</button><button className="nav-link" onClick={() => { setRoute("home"); setTimeout(() => document.querySelector("#pricing")?.scrollIntoView(), 0); }}>Pricing</button></>}{user ? <><button className="nav-link" onClick={() => setRoute("dashboard")}>Dashboard</button><button className="nav-link" onClick={logout}>Sign out</button></> : <button className="btn" onClick={() => setRoute("auth")}>Sign in</button>}<button className="icon-btn" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Toggle theme">{theme === "dark" ? "☀" : "☾"}</button></div></nav>;
+  const nav = (minimal = false) => (
+    <nav className="nav">
+      <button
+        className="brand"
+        onClick={() => setRoute(user ? "dashboard" : "home")}
+      >
+        tcf<span>·</span>material
+      </button>
+      <div className="nav-actions">
+        {!minimal && (
+          <>
+            <button className="nav-link" onClick={() => setRoute("home")}>
+              Features
+            </button>
+            <button
+              className="nav-link"
+              onClick={() => {
+                setRoute("home");
+                setTimeout(
+                  () => document.querySelector("#pricing")?.scrollIntoView(),
+                  0,
+                );
+              }}
+            >
+              Pricing
+            </button>
+          </>
+        )}
+        {user ? (
+          <>
+            <button className="nav-link" onClick={() => setRoute("dashboard")}>
+              Dashboard
+            </button>
+            <button className="nav-link" onClick={logout}>
+              Sign out
+            </button>
+          </>
+        ) : (
+          <button className="btn" onClick={() => setRoute("auth")}>
+            Sign in
+          </button>
+        )}
+      </div>
+    </nav>
+  );
 
-  const Home = () => <div className="shell">{nav()}<main><section className="hero"><div><div className="eyebrow">The focused route to your TCF score</div><h1>French practice,<br/><em>without the noise.</em></h1><p className="lede">Forty full-length TCF practice tests, clear explanations, and a calmer way to build exam confidence — from your first A1 question to C1.</p><div className="hero-actions"><button className="btn" onClick={() => setRoute(user ? "dashboard" : "auth")}>Start practicing →</button><button className="btn secondary" onClick={() => document.querySelector("#features")?.scrollIntoView()}>See how it works</button></div><div className="mini-proof"><span>✓ 40 full tests</span><span>✓ Instant explanations</span><span>✓ Real score tracking</span></div></div><div className="preview"><div className="preview-top"><span className="mono">Review mode</span><span>03 / 39</span></div><div className="question-card"><span className="level">A1</span><div className="passage">Le train pour Lyon partira exceptionnellement voie 8.</div><div className="choice">A. Acheter un billet</div><div className="choice active">B. Changer de quai</div><div className="choice">C. Appeler un taxi</div></div></div></section><div className="stats-strip"><div className="stat"><strong>40</strong><span>curated practice tests</span></div><div className="stat"><strong>699</strong><span>CRS score mapping</span></div><div className="stat"><strong>2</strong><span>practice modes</span></div></div><section className="section" id="features"><div className="section-head"><div><div className="eyebrow">A complete practice room</div><h2>Learn from every answer.</h2></div><p className="section-copy">Train under pressure or slow things down. Every session builds a clear picture of where you are and what to do next.</p></div><div className="feature-grid">{[["01","Listen","Exam-style audio prompts and transcripts."],["02","Read","Authentic notices, messages, and longer texts."],["03","Write","Structured prompts from A1 through C1."],["04","Speak","Guided scenarios with timed preparation."]].map(item => <article className="feature" key={item[0]}><span className="num">{item[0]}</span><h3>{item[1]}</h3><p>{item[2]}</p></article>)}</div></section><section className="section" id="pricing"><div className="pricing"><div><div className="eyebrow">Simple access, no subscription</div><h2>Pick the time you need.</h2><p className="pricing-copy">All plans unlock every module, explanation, transcript and progress report.</p></div><div className="price-cards">{[["7 days","$10"],["15 days","$25"],["30 days","$45"]].map((plan, index) => <div className={`price-card ${index === 2 ? "best" : ""}`} key={plan[0]}><div><small>{plan[0]}</small><strong>{plan[1]}</strong></div><button className="btn" onClick={() => setToast(`${plan[0]} plan (${plan[1]}) — Razorpay is ready for API keys`)}>Choose</button></div>)}</div></div></section></main></div>;
+  const Home = () => (
+    <div className="shell">
+      {nav()}
+      <main>
+        <section className="hero">
+          <div>
+            <div className="text-xl font-medium text-blue-600">
+              The focused route to your TCF score
+            </div>
+            <h1>
+              French practice,
+              <br />
+              <em>without the noise.</em>
+            </h1>
+            <p className="lede">
+              Forty full-length TCF practice tests, clear explanations, and a
+              calmer way to build confidence — from your first A1 question to
+              C1.
+            </p>
+            <div className="hero-actions">
+              <button
+                className="btn"
+                onClick={() => setRoute(user ? "dashboard" : "auth")}
+              >
+                Start practicing →
+              </button>
+              <button
+                className="btn secondary"
+                onClick={() =>
+                  document.querySelector("#features")?.scrollIntoView()
+                }
+              >
+                See how it works
+              </button>
+            </div>
+            <div className="flex gap-10 font-medium text-lg mt-4 text-gray-500">
+              <span>✅ 40 full tests</span>
+              <span>✅ Instant explanations</span>
+              <span>✅ Real score tracking</span>
+            </div>
+          </div>
+          <div className="preview">
+            <div className="preview-top">
+              <span className="mono">Review mode</span>
+              <span>03 / 39</span>
+            </div>
+            <div className="question-card">
+              <span className="level">A1</span>
+              <div className="passage">
+                Le train pour Lyon partira exceptionnellement voie 8.
+              </div>
+              <div className="choice">A. Acheter un billet</div>
+              <div className="choice active">B. Changer de quai</div>
+              <div className="choice">C. Appeler un taxi</div>
+            </div>
+          </div>
+        </section>
+        <div className="stats-strip">
+          <div className="flex flex-col justify-center items-center">
+            <strong className="text-6xl font-normal">40</strong>
+            <span className="flex gap-10 font-medium text-lg mt-4 text-gray-500">
+              curated practice tests
+            </span>
+          </div>
+          <div className="flex flex-col justify-center items-center">
+            <strong className="text-6xl font-normal">699</strong>
+            <span className="font-medium text-lg mt-4 text-gray-500">
+              CRS score mapping
+            </span>
+          </div>
+          <div className="flex flex-col justify-center items-center">
+            <strong className="text-6xl font-normal">1</strong>
+            <span className="font-medium text-lg mt-4 text-gray-500">
+              focused review mode
+            </span>
+          </div>
+        </div>
+        <section className="section" id="features">
+          <div className="section-head">
+            <div>
+              <div className="text-lg text-blue-600 font-semibold">
+                A complete practice room
+              </div>
+              <h2>Learn from every answer.</h2>
+            </div>
+            <p className="text-lg max-w-xl">
+              Work at your own pace, check every answer, and understand each
+              correction before moving forward.
+            </p>
+          </div>
+          <div className="feature-grid">
+            {[
+              [
+                "01",
+                "Listen",
+                "Focused audio prompts with immediate corrections.",
+                "Listening",
+              ],
+              [
+                "02",
+                "Read",
+                "Authentic notices, messages, and longer texts.",
+                "Reading",
+              ],
+              [
+                "03",
+                "Write",
+                "Structured prompts from A1 through C1.",
+                "Writing",
+              ],
+              [
+                "04",
+                "Speak",
+                "Guided scenarios with clear preparation steps.",
+                "Speaking",
+              ],
+            ].map((item) => (
+              <article className="feature" key={item[0]}>
+                <div className="feature-icon-row">
+                  <span className="font-semibold text-xl text-blue-600">
+                    {item[0]}
+                  </span>
+                  <ModuleIcon name={item[3] as ModuleName} />
+                </div>
+                <h3 className="font-semibold">{item[1]}</h3>
+                <p className="text-md font-semibold">{item[2]}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="section pricing-section" id="pricing">
+          <div className="pricing-heading">
+            <div className="font-semibold text-blue-600 text-2xl">
+              Simple access, no subscription
+            </div>
+            <h2 className="font-semibold">Pick the time you need</h2>
+            <p className="font-semibold">
+              Every plan unlocks all practice tests, instant explanations,
+              transcripts, and progress reports.
+            </p>
+          </div>
+          <div className="price-cards">
+            {[
+              [
+                "7-days",
+                "Starter",
+                "7 days",
+                "$10",
+                [
+                  "All 40 practice tests",
+                  "Listening and Reading",
+                  "Instant answer explanations",
+                  "Progress tracking",
+                ],
+              ],
+              [
+                "30-days",
+                "Focused",
+                "30 days",
+                "$25",
+                [
+                  "Everything in Starter",
+                  "30 days of full access",
+                  "Unlimited review sessions",
+                  "Detailed score history",
+                ],
+              ],
+              [
+                "60-days",
+                "Complete",
+                "60 days",
+                "$40",
+                [
+                  "Everything in Focused",
+                  "60 days of full access",
+                  "Unlimited review sessions",
+                  "Best value for preparation",
+                ],
+              ],
+            ].map((plan, index) => (
+              <article
+                className={`price-card ${index === 2 ? "best" : ""}`}
+                key={plan[0] as string}
+              >
+                {index === 2 && (
+                  <span className="popular-badge">Best value</span>
+                )}
+                <div className="plan-icon" aria-hidden="true">
+                  ✓
+                </div>
+                <span className="plan-label">{plan[1] as string} plan</span>
+                <h3>{plan[2] as string}</h3>
+                <div className="plan-price">
+                  <strong>{plan[3] as string}</strong>
+                  <span>one-time</span>
+                </div>
+                <ul>
+                  {(plan[4] as string[]).map((feature) => (
+                    <li key={feature}>
+                      <span>✓</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  className="btn plan-button"
+                  disabled={checkoutPlan === plan[0]}
+                  onClick={() => void startCheckout(plan[0] as string)}
+                >
+                  {checkoutPlan === plan[0]
+                    ? "Opening checkout…"
+                    : "Choose this plan"}
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 
-  const Auth = () => <div className="shell">{nav(true)}<div className="auth-wrap"><form className="auth-card" onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); login(new FormData(event.currentTarget).get("email") as string); }}><div className="eyebrow">Welcome to your study room</div><h1>Continue your progress.</h1><p className="user-note">Sign in or create an account — it only takes a moment.</p><button type="button" className="btn google" onClick={() => { login("learner@gmail.com"); setToast("Demo Google account connected"); }}>G&nbsp;&nbsp; Continue with Google</button><div className="divider">OR WITH EMAIL</div><div className="field"><label htmlFor="email">Email address</label><input id="email" name="email" type="email" required placeholder="you@example.com"/></div><div className="field"><label htmlFor="password">Password</label><input id="password" name="password" type="password" required minLength={6} placeholder="At least 6 characters"/></div><button className="btn full-button">Continue →</button></form></div></div>;
+  const Auth = () => (
+    <div className="shell">
+      {nav(true)}
+      <div className="auth-wrap">
+        <form
+          className="auth-card"
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            login(new FormData(event.currentTarget).get("email") as string);
+          }}
+        >
+          <div className="text-blue-600 text-2xl font-bold text-center mb-3">Welcome to your study room</div>
+          <p className="text-center mb-3 font-semibold">
+            Sign in or create an account — it only takes a moment.
+          </p>
+          <button
+            type="button"
+            className="btn google"
+            onClick={() => {
+              login("learner@gmail.com");
+              setToast("Demo Google account connected");
+            }}
+          >
+            G&nbsp;&nbsp; Continue with Google
+          </button>
+          <div className="divider">OR WITH EMAIL</div>
+          <div className="field">
+            <label htmlFor="email">Email address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              placeholder="you@example.com"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              minLength={6}
+              placeholder="At least 6 characters"
+            />
+          </div>
+          <button className="btn full-button mt-2">Continue →</button>
+        </form>
+      </div>
+    </div>
+  );
 
-  const Dashboard = () => <div className="shell">{nav()}<main className="dashboard"><div className="welcome"><div><div className="eyebrow">Your learning room</div><h1>Welcome back.</h1><p className="user-note">{user?.email}</p></div><button className="btn secondary" onClick={() => openModule("Listening")}>Resume practice →</button></div><div className="overview-stats"><div><strong>{progressData?.overall.attempted ?? 0}</strong><span>tests attempted</span></div><div><strong>{progressData?.overall.completed ?? 0}</strong><span>tests completed</span></div><div><strong>{progressData?.overall.average ?? 0}%</strong><span>overall average</span></div></div><div className="module-overviews"><ModuleOverview name="Listening" data={progressData?.modules.listening} onOpen={() => openModule("Listening")}/><ModuleOverview name="Reading" data={progressData?.modules.reading} onOpen={() => openModule("Reading")}/></div><div className="section-head"><div><div className="eyebrow">Practice</div><h2 className="dashboard-heading">Choose a skill</h2></div><p className="section-copy">Listening and Reading are available now. Writing and Speaking are coming soon.</p></div><div className="module-grid">{[["◖","Listening","Audio comprehension"],["▤","Reading","Text comprehension"],["✎","Writing","Coming soon"],["◉","Speaking","Coming soon"]].map(item => <button className="module" key={item[1]} onClick={() => openModule(item[1] as ModuleName)}><span>{item[0]}</span><b>{item[1]}</b><small>{item[2]}</small></button>)}</div></main></div>;
+  const Dashboard = () => (
+    <div className="shell">
+      {nav()}
+      <main className="dashboard">
+        <div className="welcome">
+          <div>
+            <div className="text-xl font-bold text-blue-600 mb-3">
+              Your learning room
+            </div>
+            <h1 className="text-4xl mb-3 font-bold">Welcome back,</h1>
+            <p className="text-lg text-gray-500 font-medium mt-2">
+              {user?.email?.split("@")[0]}
+            </p>
+          </div>
+          <button
+            className="btn secondary"
+            onClick={() => openModule("Listening")}
+          >
+            Resume practice →
+          </button>
+        </div>
+        <div className="overview-stats">
+          <div>
+            <strong>{progressData?.overall.attempted ?? 0}</strong>
+            <span className=" text-gray-500 font-medium">tests attempted</span>
+          </div>
+          <div>
+            <strong>{progressData?.overall.completed ?? 0}</strong>
+            <span className="text-gray-500 font-medium">tests completed</span>
+          </div>
+          <div>
+            <strong>{progressData?.overall.average ?? 0}%</strong>
+            <span className="text-gray-500 font-medium">overall average</span>
+          </div>
+        </div>
+        <div className="">
+          <ModuleOverview
+            name="Listening"
+            data={progressData?.modules.listening}
+            onOpen={() => openModule("Listening")}
+          />
+          <ModuleOverview
+            name="Reading"
+            data={progressData?.modules.reading}
+            onOpen={() => openModule("Reading")}
+          />
+        </div>
+        <div className="flex justify-between mt-10">
+          <div>
+            <div className="text-blue-600 text-xl font-bold">Practice</div>
+            <h2 className="text-4xl font-bold mt-2">Choose a skill</h2>
+          </div>
+          <p className="text-lg text-gray-500 mt-2">
+            Listening and Reading are available now. Writing and Speaking are
+            coming soon.
+          </p>
+        </div>
+        <div className="module-grid">
+          {[
+            ["Listening", "Audio comprehension"],
+            ["Reading", "Text comprehension"],
+            ["Writing", "Coming soon"],
+            ["Speaking", "Coming soon"],
+          ].map((item) => (
+            <button
+              className="module"
+              key={item[0]}
+              onClick={() => openModule(item[0] as ModuleName)}
+            >
+              <ModuleIcon name={item[0] as ModuleName} />
+              <b>{item[0]}</b>
+              <small>{item[1]}</small>
+            </button>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
 
-  const Tests = () => { const moduleProgress = progressData?.modules[moduleName.toLowerCase() as "listening" | "reading"]; return <div className="shell">{nav()}<main className="dashboard"><div className="tests-head"><div><div className="eyebrow">{moduleName} practice</div><h1>{moduleName} Tests</h1><p className="user-note">40 full tests · all levels · three attempts each</p></div><button className="btn secondary" onClick={() => setRoute("dashboard")}>← Dashboard</button></div><ScoreChart compact scores={moduleProgress?.recentScores} label={`${moduleName} score trend`}/><div className="progress-legend"><span><i className="legend-completed"/> Completed</span><span><i className="legend-progress"/> In progress</span><span>{moduleProgress?.completed ?? 0}/40 completed · {moduleProgress?.average ?? 0}% average</span></div><div className="tests-grid">{Array.from({ length: 40 }, (_, index) => { const testNumber = index + 1; const testProgress = moduleProgress?.tests.find(item => item.testNumber === testNumber); return <button className={`test ${testProgress?.status === "completed" ? "done" : testProgress?.status === "in_progress" ? "in-progress" : ""}`} key={index} onClick={() => { setTest(testNumber); setShowMode(true); }}><small>Test</small>{testNumber}{testProgress?.status === "completed" && <small>✓ {testProgress.percentage}%</small>}{testProgress?.status === "in_progress" && <small>In progress</small>}</button>; })}</div></main>{showMode && <ModeModal onBegin={beginExam} onClose={() => setShowMode(false)}/>}</div>; };
+  const Tests = () => {
+    const moduleProgress =
+      progressData?.modules[
+        moduleName.toLowerCase() as "listening" | "reading"
+      ];
+    return (
+      <div className="shell">
+        {nav()}
+        <main className="dashboard">
+          <div className="tests-head">
+            <div>
+              <div className="text-blue-600 font-semibold text-2xl mb-5">{moduleName} review</div>
+              <h1 className="text-4xl font-bold">{moduleName} Tests</h1>
+              <p className="text-gray-500 mt-2 text-lg font-semibold">
+                40 full tests · all levels · immediate answer feedback
+              </p>
+            </div>
+            <button
+              className="btn secondary"
+              onClick={() => setRoute("dashboard")}
+            >
+              ← Dashboard
+            </button>
+          </div>
+          <ScoreChart
+            compact
+            scores={moduleProgress?.recentScores}
+            label={`${moduleName} score trend`}
+          />
+          <div className="progress-legend">
+            <span>
+              <i className="legend-completed" /> <p className="text-lg font-semibold text-gray-500">Completed</p>
+            </span>
+            <span>
+              <i className="legend-progress" /> <p className="text-lg font-semibold text-gray-500">In progress</p>
+            </span>
+            <span className="text-lg font-medium">
+              {moduleProgress?.completed ?? 0}/40 completed ·{" "}
+              {moduleProgress?.average ?? 0}% average
+            </span>
+          </div>
+          <div className="tests-grid">
+            {Array.from({ length: 40 }, (_, index) => {
+              const testNumber = index + 1;
+              const testProgress = moduleProgress?.tests.find(
+                (item) => item.testNumber === testNumber,
+              );
+              return (
+                <button
+                  className={`test ${testProgress?.status === "completed" ? "done" : testProgress?.status === "in_progress" ? "in-progress" : ""}`}
+                  key={index}
+                  onClick={() => beginReview(testNumber)}
+                >
+                  <small>Test</small>
+                  {testNumber}
+                  {testProgress?.status === "completed" && (
+                    <small>✓ {testProgress.percentage}%</small>
+                  )}
+                  {testProgress?.status === "in_progress" && (
+                    <small>In progress</small>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </main>
+      </div>
+    );
+  };
 
-  const Exam = () => { const question = questions[questionIndex]; const selected = answers[questionIndex]; return <div className="shell">{nav(true)}<div className="progress"><i style={{ width: `${((questionIndex + 1) / questions.length) * 100}%` }}/></div><main className="exam"><aside className="rail"><div className="rail-top"><b>{moduleName} · Test {test}</b><p className="user-note">{Object.keys(answers).length}/{questions.length} answered</p></div><div className="q-nav">{questions.map((_, index) => <button className={`q-dot ${index === questionIndex ? "active" : ""}`} key={index} onClick={() => setQuestionIndex(index)}>Q{index + 1}</button>)}</div></aside><section className="exam-main"><div className="exam-top"><span className="level">{question.level}</span><span className="mono">Q{questionIndex + 1}/{questions.length}{mode === "exam" && " · 34:42"}</span></div><div className="prompt">{question.prompt.split("\n").map((line, index) => <span key={line}>{index > 0 && <br/>}{line}</span>)}</div><h3>{question.ask}</h3><div className="answers">{question.answers.map((answerText, index) => { let answerClass = selected === index ? "selected" : ""; if (mode === "review" && selected !== undefined) answerClass += index === question.correct ? " correct" : selected === index ? " wrong" : ""; return <button className={`answer ${answerClass}`} key={answerText} onClick={() => setAnswers(current => ({ ...current, [questionIndex]: index }))}><b>{"ABCD"[index]}.</b>&nbsp;&nbsp;{answerText}</button>; })}</div>{mode === "review" && selected !== undefined && <p className="user-note feedback">{selected === question.correct ? "Correct — well read." : `The key detail in the prompt points to answer ${"ABCD"[question.correct]}.`}</p>}<div className="exam-actions"><button className="btn ghost" onClick={toggleFlag}>{flagged.has(questionIndex) ? "⚑ Flagged" : "⚐ Flag for review"}</button><button className="btn" onClick={nextQuestion}>{questionIndex === questions.length - 1 ? "Finish test" : "Confirm & next →"}</button></div></section></main></div>; };
+  const Exam = () => {
+    const question = questions[questionIndex];
+    const selected = answers[questionIndex];
+    return (
+      <div className="shell">
+        {nav(true)}
+        <div className="progress">
+          <i
+            style={{
+              width: `${((questionIndex + 1) / questions.length) * 100}%`,
+            }}
+          />
+        </div>
+        <main className="exam">
+          <aside className="rail">
+            <div className="rail-top">
+              <b>
+                {moduleName} · Test {test}
+              </b>
+              <p className="user-note">
+                {Object.keys(answers).length}/{questions.length} answered
+              </p>
+            </div>
+            <div className="q-nav">
+              {questions.map((_, index) => (
+                <button
+                  className={`q-dot ${index === questionIndex ? "active" : ""}`}
+                  key={index}
+                  onClick={() => setQuestionIndex(index)}
+                >
+                  Q{index + 1}
+                </button>
+              ))}
+            </div>
+          </aside>
+          <section className="exam-main">
+            <div className="exam-top">
+              <span className="level">{question.level}</span>
+              <span className="mono">
+                Q{questionIndex + 1}/{questions.length}
+                {mode === "exam" && " · 34:42"}
+              </span>
+            </div>
+            <div className="prompt">
+              {question.prompt.split("\n").map((line, index) => (
+                <span key={line}>
+                  {index > 0 && <br />}
+                  {line}
+                </span>
+              ))}
+            </div>
+            <h3>{question.ask}</h3>
+            <div className="answers">
+              {question.answers.map((answerText, index) => {
+                let answerClass = selected === index ? "selected" : "";
+                if (mode === "review" && selected !== undefined)
+                  answerClass +=
+                    index === question.correct
+                      ? " correct"
+                      : selected === index
+                        ? " wrong"
+                        : "";
+                return (
+                  <button
+                    className={`answer ${answerClass}`}
+                    key={answerText}
+                    onClick={() =>
+                      setAnswers((current) => ({
+                        ...current,
+                        [questionIndex]: index,
+                      }))
+                    }
+                  >
+                    <b>{"ABCD"[index]}.</b>&nbsp;&nbsp;{answerText}
+                  </button>
+                );
+              })}
+            </div>
+            {mode === "review" && selected !== undefined && (
+              <p className="user-note feedback">
+                {selected === question.correct
+                  ? "Correct — well read."
+                  : `The key detail in the prompt points to answer ${"ABCD"[question.correct]}.`}
+              </p>
+            )}
+            <div className="exam-actions">
+              <button className="btn ghost" onClick={toggleFlag}>
+                {flagged.has(questionIndex) ? "⚑ Flagged" : "⚐ Flag for review"}
+              </button>
+              <button className="btn" onClick={nextQuestion}>
+                {questionIndex === questions.length - 1
+                  ? "Finish test"
+                  : "Confirm & next →"}
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  };
 
-  const Results = () => { const correct = questions.filter((question, index) => answers[index] === question.correct).length; const answered = Object.keys(answers).length; const percentage = answered ? Math.round(correct / answered * 100) : 0; const estimatedLevel = correct / questions.length > .8 ? "B2" : correct / questions.length > .55 ? "B1" : "A2"; return <div className="shell">{nav()}<main className="dashboard"><div className="result-card"><div className="eyebrow">Test {test} · {mode} mode</div><h1 className="result-title">Test complete.</h1><div className="score">{percentage}%</div><p className="user-note">of answered questions</p><div className="score-grid"><div><strong className="correct-text">{correct}</strong><small>correct</small></div><div><strong className="wrong-text">{answered - correct}</strong><small>wrong</small></div><div><strong>{questions.length - answered}</strong><small>skipped</small></div></div><div className="score-estimate"><span className="mono user-note">TCF score estimate · {Math.round(correct / questions.length * 699)} pts</span><div className="level-bar"/></div><h2 className="level-title">Estimated level: {estimatedLevel}</h2><div className="hero-actions centered"><button className="btn secondary" onClick={() => { setAnswers({}); setQuestionIndex(0); setRoute("exam"); }}>Retry test</button><button className="btn" onClick={() => setRoute("tests")}>All tests →</button></div></div></main></div>; };
+  const Results = () => {
+    const correct = questions.filter(
+      (question, index) => answers[index] === question.correct,
+    ).length;
+    const answered = Object.keys(answers).length;
+    const percentage = answered ? Math.round((correct / answered) * 100) : 0;
+    const estimatedLevel =
+      correct / questions.length > 0.8
+        ? "B2"
+        : correct / questions.length > 0.55
+          ? "B1"
+          : "A2";
+    return (
+      <div className="shell">
+        {nav()}
+        <main className="dashboard">
+          <div className="result-card">
+            <div className="eyebrow">
+              Test {test} · {mode} mode
+            </div>
+            <h1 className="result-title">Test complete.</h1>
+            <div className="score">{percentage}%</div>
+            <p className="user-note">of answered questions</p>
+            <div className="score-grid">
+              <div>
+                <strong className="correct-text">{correct}</strong>
+                <small>correct</small>
+              </div>
+              <div>
+                <strong className="wrong-text">{answered - correct}</strong>
+                <small>wrong</small>
+              </div>
+              <div>
+                <strong>{questions.length - answered}</strong>
+                <small>skipped</small>
+              </div>
+            </div>
+            <div className="score-estimate">
+              <span className="mono user-note">
+                TCF score estimate ·{" "}
+                {Math.round((correct / questions.length) * 699)} pts
+              </span>
+              <div className="level-bar" />
+            </div>
+            <h2 className="level-title">Estimated level: {estimatedLevel}</h2>
+            <div className="hero-actions centered">
+              <button
+                className="btn secondary"
+                onClick={() => {
+                  setAnswers({});
+                  setQuestionIndex(0);
+                  setRoute("exam");
+                }}
+              >
+                Retry test
+              </button>
+              <button className="btn" onClick={() => setRoute("tests")}>
+                All tests →
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  };
 
-  const ComingSoon = () => <div className="shell">{nav()}<main className="dashboard"><section className="result-card coming-soon"><div className="coming-soon-icon" aria-hidden="true">{moduleName === "Writing" ? "✎" : "◉"}</div><div className="eyebrow">{moduleName} module</div><h1>Coming soon.</h1><p className="user-note">We’re preparing the {moduleName.toLowerCase()} practice experience. Listening and Reading are ready for you now.</p><div className="hero-actions centered"><button className="btn secondary" onClick={() => setRoute("dashboard")}>← Back to dashboard</button><button className="btn" onClick={() => openModule("Listening")}>Practice Listening →</button></div></section></main></div>;
+  const ComingSoon = () => (
+    <div className="shell">
+      {nav()}
+      <main className="dashboard">
+        <section className="result-card coming-soon">
+          <div className="coming-soon-icon" aria-hidden="true">
+            {moduleName === "Writing" ? "✎" : "◉"}
+          </div>
+          <div className="eyebrow">{moduleName} module</div>
+          <h1>Coming soon.</h1>
+          <p className="user-note">
+            We’re preparing the {moduleName.toLowerCase()} practice experience.
+            Listening and Reading are ready for you now.
+          </p>
+          <div className="hero-actions centered">
+            <button
+              className="btn secondary"
+              onClick={() => setRoute("dashboard")}
+            >
+              ← Back to dashboard
+            </button>
+            <button className="btn" onClick={() => openModule("Listening")}>
+              Practice Listening →
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 
-  const views: Record<Route, React.ReactNode> = { home: <Home/>, auth: <Auth/>, dashboard: user ? <Dashboard/> : <Auth/>, tests: <Tests/>, exam: <Exam/>, results: <Results/>, comingSoon: <ComingSoon/> };
-  return <>{views[route]}<div id="toast" role="status" aria-live="polite" className={toast ? "show" : ""}>{toast}</div></>;
+  const views: Record<Route, React.ReactNode> = {
+    home: <Home />,
+    auth: <Auth />,
+    dashboard: user ? <Dashboard /> : <Auth />,
+    tests: <Tests />,
+    exam: <Exam />,
+    results: <Results />,
+    comingSoon: <ComingSoon />,
+  };
+  return (
+    <>
+      {views[route]}
+      <div
+        id="toast"
+        role="status"
+        aria-live="polite"
+        className={toast ? "show" : ""}
+      >
+        {toast}
+      </div>
+    </>
+  );
 }
 
-function ScoreChart({ compact = false, scores = [], label = "Score trend" }: { compact?: boolean; scores?: number[]; label?: string }) {
-  const points = scores.map((score, index) => `${scores.length === 1 ? 50 : 5 + index * (90 / (scores.length - 1))},${95 - score * .75}`).join(" ");
-  return <div className="chart" style={compact ? { height: 190 } : undefined}><span className="chart-label">{label} · last 5 completed attempts</span>{scores.length ? <svg className="score-chart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${label}: ${scores.join(", ")} percent`}><polyline points={points}/>{scores.map((score, index) => <circle key={index} cx={scores.length === 1 ? 50 : 5 + index * (90 / (scores.length - 1))} cy={95 - score * .75} r="1.8"/>)}</svg> : <div className="chart-empty">Complete a test to start your score trend.</div>}</div>;
+function ScoreChart({
+  compact = false,
+  scores = [],
+  label = "Score trend",
+}: {
+  compact?: boolean;
+  scores?: number[];
+  label?: string;
+}) {
+  const points = scores
+    .map(
+      (score, index) =>
+        `${scores.length === 1 ? 50 : 5 + index * (90 / (scores.length - 1))},${95 - score * 0.75}`,
+    )
+    .join(" ");
+  return (
+    <div className="chart" style={compact ? { height: 190 } : undefined}>
+      <span className="text-lg font-semibold text-gray-500">
+        {label} · last 5 completed attempts
+      </span>
+      {scores.length ? (
+        <svg
+          className="score-chart"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-label={`${label}: ${scores.join(", ")} percent`}
+        >
+          <polyline points={points} />
+          {scores.map((score, index) => (
+            <circle
+              key={index}
+              cx={
+                scores.length === 1
+                  ? 50
+                  : 5 + index * (90 / (scores.length - 1))
+              }
+              cy={95 - score * 0.75}
+              r="1.8"
+            />
+          ))}
+        </svg>
+      ) : (
+        <div className="flex justify-center items-center">
+          <span className="text-md font-medium text-gray-500 pt-10">
+            Complete a test to start your score trend.
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
-function ModuleOverview({ name, data, onOpen }: { name: "Listening" | "Reading"; data?: ModuleProgressData; onOpen: () => void }) { return <article className="module-overview"><div className="module-overview-head"><div><span className="eyebrow">{name}</span><h3>{data?.average ?? 0}% average</h3></div><button className="btn secondary" onClick={onOpen}>View tests →</button></div><ScoreChart compact scores={data?.recentScores} label={name}/><div className="overview-meta"><span><strong>{data?.attempted ?? 0}</strong> attempted</span><span><strong>{data?.completed ?? 0}</strong> completed</span><span><strong>{data?.best ?? 0}%</strong> best</span></div></article>; }
-function ModeModal({ onBegin, onClose }: { onBegin: (mode: PracticeMode) => void; onClose: () => void }) { return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="modal"><div className="eyebrow">Choose your mode</div><h2 className="mode-title">How do you want to practice?</h2><button className="mode" onClick={() => onBegin("exam")}><h3>⏱ Exam Mode <span className="level">35 minutes</span></h3><p>39 questions under timed conditions. No answers or explanations until the end.</p></button><button className="mode" onClick={() => onBegin("review")}><h3>▤ Review Mode <span className="level">No timer</span></h3><p>Go at your pace. See the correct answer and explanation after each response.</p></button><button className="btn ghost full-button" onClick={onClose}>Cancel</button></div></div>; }
+function ModuleOverview({
+  name,
+  data,
+  onOpen,
+}: {
+  name: "Listening" | "Reading";
+  data?: ModuleProgressData;
+  onOpen: () => void;
+}) {
+  return (
+    <article className="module-overview text-xl mb-5">
+      <div className="module-overview-head">
+        <div>
+          <span className="font-bold text-blue-600">{name}</span>
+          <h3 className="pt-3">{data?.average ?? 0}% average</h3>
+        </div>
+        <button className="btn secondary" onClick={onOpen}>
+          View tests →
+        </button>
+      </div>
+      <ScoreChart compact scores={data?.recentScores} label={name} />
+      <div className="flex justify-between pt-10">
+        <span>
+          <strong>{data?.attempted ?? 0}</strong> <p className="text-md font-medium text-gray-500">attempted</p>
+        </span>
+        <span>
+          <strong>{data?.completed ?? 0}</strong> <p className="text-md">completed</p>
+        </span>
+        <span>
+          <strong>{data?.best ?? 0}%</strong> <p className="text-md">best</p>
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function ModuleIcon({ name }: { name: ModuleName }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  return (
+    <span className="module-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" {...common}>
+        {name === "Listening" && <><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><path d="M4 14a2 2 0 0 1 2-2h1v7H6a2 2 0 0 1-2-2zM20 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z"/></>}
+        {name === "Reading" && <><path d="M3.5 5.5A3.5 3.5 0 0 1 7 4h4v16H7a3.5 3.5 0 0 0-3.5 1z"/><path d="M20.5 5.5A3.5 3.5 0 0 0 17 4h-4v16h4a3.5 3.5 0 0 1 3.5 1z"/></>}
+        {name === "Writing" && <><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16z"/><path d="m14.5 6.7 3 3M4 20h6"/></>}
+        {name === "Speaking" && <><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></>}
+      </svg>
+    </span>
+  );
+}
