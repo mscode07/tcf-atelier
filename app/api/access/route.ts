@@ -32,5 +32,14 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ authenticated: true, active: access.active, expiresAt: access.expiresAt?.toISOString() ?? null });
+  const [localPart, domain = ""] = session.user.email.toLowerCase().split("@");
+  const maskedEmail = `${localPart.slice(0, 2)}${"*".repeat(Math.max(3, localPart.length - 2))}@${domain}`;
+  return NextResponse.json({
+    authenticated: true,
+    active: access.active,
+    expiresAt: access.expiresAt?.toISOString() ?? null,
+    watermark: `${maskedEmail} · ${access.userId?.slice(0, 8) ?? "unknown"}`,
+  }, {
+    headers: { "Cache-Control": "private, no-store, max-age=0" },
+  });
 }

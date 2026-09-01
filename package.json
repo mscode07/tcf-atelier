@@ -7,6 +7,7 @@
         "build": "next build",
         "start": "next start",
         "typecheck": "tsc --noEmit",
+        "verify:access-expiry": "node scripts/verify_access_expiry.mjs",
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
         "db:studio": "drizzle-kit studio"

@@ -2,8 +2,5 @@
   "/api/access/route": "app/api/access/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/progress/route": "app/api/progress/route.js",
-  "/api/stripe/checkout/route": "app/api/stripe/checkout/route.js",
-  "/api/stripe/verify/route": "app/api/stripe/verify/route.js",
-  "/page": "app/page.js",
-  "/reading-tests/[test]/page": "app/reading-tests/[test]/page.js"
+  "/page": "app/page.js"
 }

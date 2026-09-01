@@ -70,3 +70,26 @@ USD $25 for 30 days, and USD $40 for 60 days. Checkout and fulfillment reject
 any Price whose amount, currency, or access duration does not match the package.
 Module access is checked server-side on every protected request and expires at
 the exact purchased duration measured from the successful payment timestamp.
+
+## Protected learning material
+
+Listening and Reading routes require both authentication and an unexpired paid
+package. Protected responses are private and non-cacheable, and include
+anti-indexing and same-origin resource headers. Module screens add a moving,
+user-specific watermark; disable casual selection, copy, context-menu, dragging,
+save, source, and print actions; hide content while printing or when the tab is
+hidden; and revalidate access every 30 seconds and whenever the tab is reopened.
+
+These controls deter copying and make leaked captures attributable. A browser
+cannot guarantee prevention of operating-system screenshots, screen recording,
+developer-tools extraction, or a photograph taken with another device.
+
+To verify a real user's expiry without changing database records, run:
+
+```bash
+npm run verify:access-expiry -- user@example.com
+```
+
+The command reports the package start and expiry timestamps and performs a
+read-only check at one millisecond after expiry. The expected result is `PASS`
+with `activeOneMillisecondAfterExpiry: false`.
