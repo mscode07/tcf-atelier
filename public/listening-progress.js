@@ -8,6 +8,38 @@
   const back = document.querySelector("header a");
   if (back) back.textContent = "← Dashboard";
 
+  document.body.classList.add("protected-material");
+  const shield = document.createElement("div");
+  shield.className = "security-shield";
+  shield.innerHTML = '<strong>Protected material</strong><span>Return to this tab to continue.</span>';
+  document.body.appendChild(shield);
+  const watermark = document.createElement("div");
+  watermark.className = "security-watermark";
+  document.body.appendChild(watermark);
+
+  let watermarkIdentity = "Licensed user";
+  const watermarkPositions = [[8, 18], [58, 16], [30, 47], [66, 70], [10, 76]];
+  let watermarkPosition = 0;
+  function updateWatermark() {
+    const position = watermarkPositions[watermarkPosition++ % watermarkPositions.length];
+    watermark.style.left = `${position[0]}%`;
+    watermark.style.top = `${position[1]}%`;
+    watermark.textContent = `${watermarkIdentity} · ${new Date().toLocaleString()}`;
+  }
+  updateWatermark();
+  window.setInterval(updateWatermark, 12_000);
+
+  const blockAction = event => event.preventDefault();
+  ["copy", "cut", "contextmenu", "dragstart", "selectstart"].forEach(type => document.addEventListener(type, blockAction));
+  document.addEventListener("keydown", event => {
+    const blockedShortcut = (event.ctrlKey || event.metaKey) && ["c", "s", "p", "u", "a"].includes(event.key.toLowerCase());
+    if (blockedShortcut || event.key === "PrintScreen") event.preventDefault();
+  });
+  function updateShield() { document.body.classList.toggle("content-shielded", document.hidden); }
+  document.addEventListener("visibilitychange", updateShield);
+  window.addEventListener("beforeprint", () => document.body.classList.add("content-shielded"));
+  window.addEventListener("afterprint", () => document.body.classList.remove("content-shielded"));
+
   function validateAccess() {
     fetch("/api/access", { credentials: "same-origin", cache: "no-store" })
       .then(async response => {
@@ -15,8 +47,10 @@
           window.location.replace("/?access=signin_required");
           return;
         }
-        if (response.ok && !(await response.json()).active) {
-          window.location.replace("/?access=subscription_required");
+        if (response.ok) {
+          const access = await response.json();
+          if (!access.active) window.location.replace("/?access=subscription_required");
+          if (access.watermark) { watermarkIdentity = access.watermark; updateWatermark(); }
         }
       })
       .catch(() => undefined);

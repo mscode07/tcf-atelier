@@ -15,6 +15,10 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
   const [submitted, setSubmitted] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(35 * 60);
   const [reviewingResults, setReviewingResults] = useState(false);
+  const [watermarkIdentity, setWatermarkIdentity] = useState("Licensed user");
+  const [watermarkPosition, setWatermarkPosition] = useState(0);
+  const [watermarkTime, setWatermarkTime] = useState("");
+  const [contentShielded, setContentShielded] = useState(false);
   const question = questions[current];
   const selected = answers[current];
   const isChecked = checked.has(current);
@@ -30,8 +34,10 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
           window.location.replace("/?access=signin_required");
           return;
         }
-        if (response.ok && !((await response.json()) as { active?: boolean }).active) {
-          window.location.replace("/?access=subscription_required");
+        if (response.ok) {
+          const access = (await response.json()) as { active?: boolean; watermark?: string };
+          if (!access.active) window.location.replace("/?access=subscription_required");
+          if (access.watermark) setWatermarkIdentity(access.watermark);
         }
       } catch { /* A transient network failure should not discard in-progress work. */ }
     };
@@ -40,6 +46,34 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
     const onVisibilityChange = () => { if (!document.hidden) void validateAccess(); };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", onVisibilityChange); };
+  }, []);
+
+  useEffect(() => {
+    const blockAction = (event: Event) => event.preventDefault();
+    const blockedEvents = ["copy", "cut", "contextmenu", "dragstart", "selectstart"];
+    blockedEvents.forEach(type => document.addEventListener(type, blockAction));
+    const onKeyDown = (event: KeyboardEvent) => {
+      const blockedShortcut = (event.ctrlKey || event.metaKey) && ["c", "s", "p", "u", "a"].includes(event.key.toLowerCase());
+      if (blockedShortcut || event.key === "PrintScreen") event.preventDefault();
+    };
+    const onVisibilityChange = () => setContentShielded(document.hidden);
+    const beforePrint = () => setContentShielded(true);
+    const afterPrint = () => setContentShielded(false);
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("beforeprint", beforePrint);
+    window.addEventListener("afterprint", afterPrint);
+    const updateWatermark = () => { setWatermarkPosition(position => (position + 1) % 5); setWatermarkTime(new Date().toLocaleString()); };
+    updateWatermark();
+    const watermarkTimer = window.setInterval(updateWatermark, 12_000);
+    return () => {
+      blockedEvents.forEach(type => document.removeEventListener(type, blockAction));
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("beforeprint", beforePrint);
+      window.removeEventListener("afterprint", afterPrint);
+      window.clearInterval(watermarkTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -99,7 +133,12 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
 
   if (finished) return <main className="reading-result"><section><span className="level">Reading · Test {test}</span><h1>Test complete.</h1><div className="reading-score">{score}/{questions.length}</div><p>{Object.keys(answers).length} answered · {Math.round(score / questions.length * 100)}%</p><div className="hero-actions centered"><button className="btn secondary" onClick={() => { setReviewingResults(true); setFinished(false); }}>Review answers</button><Link className="btn" href="/">← Dashboard</Link></div></section></main>;
 
-  return <div className="reading-player">
+  const watermarkPositions = [[8, 18], [58, 16], [30, 47], [66, 70], [10, 76]];
+  const watermarkStyle = { left: `${watermarkPositions[watermarkPosition][0]}%`, top: `${watermarkPositions[watermarkPosition][1]}%` };
+
+  return <div className={`reading-player protected-material ${contentShielded ? "content-shielded" : ""}`}>
+    <div className="security-watermark" style={watermarkStyle}>{watermarkIdentity} · {watermarkTime}</div>
+    <div className="security-shield"><strong>Protected material</strong><span>Return to this tab to continue.</span></div>
     <aside className={`reading-sidebar ${sidebarOpen ? "open" : ""}`}>
       <div className="reading-test-label"><strong>Test {test}</strong><span>{Object.keys(answers).length} / {questions.length} answered</span></div>
       <div className="reading-question-nav">{questions.map((item, index) => <button key={item.number} className={`${index === current ? "current" : ""} ${answers[index] !== undefined ? "answered" : ""}`} onClick={() => { setCurrent(index); setSidebarOpen(false); }}><i/><span>Q{item.number}</span><b className={`reading-level level-${item.level.toLowerCase()}`}>{item.level}</b></button>)}</div>

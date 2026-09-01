@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { signIn, signOut } from "next-auth/react";
 
 type Route =
@@ -10,6 +10,8 @@ type Route =
   | "tests"
   | "exam"
   | "results"
+  | "writing"
+  | "speaking"
   | "comingSoon";
 type ModuleName = "Listening" | "Reading" | "Writing" | "Speaking";
 type User = { email: string };
@@ -246,9 +248,11 @@ export default function HomePage() {
     }
     setModuleName(nextModule);
     setRoute(
-      nextModule === "Writing" || nextModule === "Speaking"
-        ? "comingSoon"
-        : "tests",
+      nextModule === "Writing"
+        ? "writing"
+        : nextModule === "Speaking"
+          ? "speaking"
+          : "tests",
     );
   };
   const beginReview = (selectedTest: number) => {
@@ -321,6 +325,9 @@ export default function HomePage() {
           <>
             <button className="nav-link" onClick={() => setRoute("home")}>
               Features
+            </button>
+            <button className="nav-link" onClick={() => { window.location.href = "/clb-calculator"; }}>
+              CLB Calculator
             </button>
             <button
               className="nav-link"
@@ -681,16 +688,15 @@ export default function HomePage() {
             <h2 className="text-4xl font-bold mt-2">Choose a skill</h2>
           </div>
           <p className="text-lg text-gray-500 mt-2">
-            Listening and Reading are available now. Writing and Speaking are
-            coming soon.
+            Practice all four TCF skills from one focused workspace.
           </p>
         </div>
         <div className="module-grid">
           {[
             ["Listening", "Audio comprehension"],
             ["Reading", "Text comprehension"],
-            ["Writing", "Coming soon"],
-            ["Speaking", "Coming soon"],
+            ["Writing", "113 guided prompts"],
+            ["Speaking", "52 guided prompts"],
           ].map((item) => (
             <button
               className="module"
@@ -955,8 +961,9 @@ export default function HomePage() {
           <div className="eyebrow">{moduleName} module</div>
           <h1>Coming soon.</h1>
           <p className="user-note">
-            We’re preparing the {moduleName.toLowerCase()} practice experience.
-            Listening and Reading are ready for you now.
+            Your active package includes {moduleName}. Its practice material has
+            not been added yet. Listening and Reading are ready now, and this
+            module will unlock automatically as soon as its tests are published.
           </p>
           <div className="hero-actions centered">
             <button
@@ -981,6 +988,8 @@ export default function HomePage() {
     tests: <Tests />,
     exam: <Exam />,
     results: <Results />,
+    writing: <WritingLibrary onBack={() => setRoute("dashboard")} nav={nav} />,
+    speaking: <SpeakingLibrary onBack={() => setRoute("dashboard")} nav={nav} />,
     comingSoon: <ComingSoon />,
   };
   return (
@@ -995,6 +1004,317 @@ export default function HomePage() {
         {toast}
       </div>
     </>
+  );
+}
+
+type WritingQuestion = {
+  id: string;
+  taskType: "tache_1" | "tache_2" | "tache_3";
+  prompt: string;
+  correction: string;
+  topic: string;
+  broadCategory: string;
+  topicHeading: string;
+  document1: string;
+  document2: string;
+  variantCount: number;
+};
+
+function WritingLibrary({
+  onBack,
+  nav,
+}: {
+  onBack: () => void;
+  nav: (minimal?: boolean) => React.ReactNode;
+}) {
+  const [questions, setQuestions] = useState<WritingQuestion[]>([]);
+  const [task, setTask] = useState<"all" | WritingQuestion["taskType"]>("all");
+  const [category, setCategory] = useState("all");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [visible, setVisible] = useState(12);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [showAnswers, setShowAnswers] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch("/data/writing-questions.json")
+      .then((response) => {
+        if (!response.ok) throw new Error("Writing prompts could not be loaded");
+        return response.json();
+      })
+      .then((data: { questions: WritingQuestion[] }) => setQuestions(data.questions));
+    try {
+      setDrafts(JSON.parse(localStorage.getItem("tcf-writing-drafts") || "{}"));
+    } catch {
+      setDrafts({});
+    }
+  }, []);
+
+  const categories = Array.from(new Set(questions.map((item) => item.broadCategory))).sort();
+  const filtered = questions.filter(
+    (item) =>
+      (task === "all" || item.taskType === task) &&
+      (category === "all" || item.broadCategory === category),
+  );
+  const chooseTask = (next: typeof task) => {
+    setTask(next);
+    setVisible(12);
+    setOpenId(null);
+  };
+  const updateDraft = (id: string, value: string) => {
+    const updated = { ...drafts, [id]: value };
+    setDrafts(updated);
+    localStorage.setItem("tcf-writing-drafts", JSON.stringify(updated));
+  };
+  const taskNumber = (value: WritingQuestion["taskType"]) => value.slice(-1);
+
+  return (
+    <div className="shell writing-shell">
+      {nav()}
+      <main className="writing-page">
+        <header className="writing-header">
+          <div>
+            <button className="writing-back" onClick={onBack}>← Dashboard</button>
+            <div className="writing-kicker">Expression écrite</div>
+            <h1>Writing practice</h1>
+            <p>113 authentic prompts across Tasks 1, 2 and 3. Choose a focus, write your response, then compare it with the model answer.</p>
+          </div>
+          <div className="writing-summary" aria-label="Writing question summary">
+            <strong>{filtered.length}</strong><span>prompts in this selection</span>
+          </div>
+        </header>
+
+        <section className="writing-controls" aria-label="Filter writing prompts">
+          <div className="writing-tabs" role="group" aria-label="Filter by task">
+            {(["all", "tache_1", "tache_2", "tache_3"] as const).map((value) => (
+              <button key={value} className={task === value ? "active" : ""} onClick={() => chooseTask(value)}>
+                {value === "all" ? "All tasks" : `Task ${taskNumber(value)}`}
+                <span>{value === "all" ? questions.length : questions.filter((q) => q.taskType === value).length}</span>
+              </button>
+            ))}
+          </div>
+          <label className="writing-select">
+            <span>Category</span>
+            <select value={category} onChange={(event) => { setCategory(event.target.value); setVisible(12); setOpenId(null); }}>
+              <option value="all">All categories</option>
+              {categories.map((value) => <option key={value}>{value}</option>)}
+            </select>
+          </label>
+        </section>
+
+        {!questions.length ? <div className="writing-empty">Loading writing prompts…</div> :
+          !filtered.length ? <div className="writing-empty">No prompts match this selection.</div> : (
+          <section className="writing-list" aria-live="polite">
+            {filtered.slice(0, visible).map((item) => {
+              const isOpen = openId === item.id;
+              const draft = drafts[item.id] || "";
+              const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
+              return (
+                <article className={`writing-card ${isOpen ? "open" : ""}`} key={item.id}>
+                  <button className="writing-card-head" onClick={() => setOpenId(isOpen ? null : item.id)} aria-expanded={isOpen}>
+                    <div>
+                      <div className="writing-card-meta">
+                        <span className={`writing-task task-${taskNumber(item.taskType)}`}>Task {taskNumber(item.taskType)}</span>
+                        <span>{item.broadCategory}</span>
+                      </div>
+                      <h2>{item.topicHeading || item.topic}</h2>
+                      <p>{item.taskType === "tache_3" ? item.document1 : item.prompt}</p>
+                    </div>
+                    <span className="writing-toggle" aria-hidden="true">{isOpen ? "−" : "+"}</span>
+                  </button>
+                  {isOpen && (
+                    <div className="writing-practice">
+                      {item.taskType === "tache_3" ? (
+                        <div className="writing-documents">
+                          <article><span>Document 1</span><p>{item.document1}</p></article>
+                          <article><span>Document 2</span><p>{item.document2}</p></article>
+                        </div>
+                      ) : <div className="writing-instruction"><span>French instruction</span><p>{item.prompt}</p></div>}
+                      <div className="writing-answer-label"><label htmlFor={`draft-${item.id}`}>Your response</label><span>{wordCount} words · saved on this device</span></div>
+                      <textarea id={`draft-${item.id}`} value={draft} onChange={(event) => updateDraft(item.id, event.target.value)} placeholder="Écrivez votre réponse ici…" />
+                      <button className="btn secondary writing-model-button" onClick={() => setShowAnswers((current) => { const next = new Set(current); next.has(item.id) ? next.delete(item.id) : next.add(item.id); return next; })}>
+                        {showAnswers.has(item.id) ? "Hide model answer" : "Show model answer"}
+                      </button>
+                      {showAnswers.has(item.id) && <div className="writing-model"><span>Model answer</span><p>{item.correction || "Model answer coming soon for this prompt."}</p></div>}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+            {visible < filtered.length && <button className="btn secondary writing-load" onClick={() => setVisible((count) => count + 12)}>Load 12 more</button>}
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}
+
+type SpeakingQuestion = {
+  id: number;
+  coverageMode: "quick";
+  tache: 2 | 3;
+  category: string;
+  titleFr: string;
+  promptFr: string;
+  durationSeconds: number;
+  referenceAnswer: { bulletItems?: string[]; text?: string };
+  quickSetSupport?: {
+    template?: { title: string; summary: string; templateLines: string[] };
+    coachTip?: string;
+    fills?: Record<string, string>;
+  };
+};
+
+function SpeakingLibrary({
+  onBack,
+  nav,
+}: {
+  onBack: () => void;
+  nav: (minimal?: boolean) => React.ReactNode;
+}) {
+  const [questions, setQuestions] = useState<SpeakingQuestion[]>([]);
+  const [task, setTask] = useState<"all" | 2 | 3>("all");
+  const [category, setCategory] = useState("all");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<SpeakingQuestion | null>(null);
+  const [done, setDone] = useState<Set<number>>(new Set());
+  const [showGuide, setShowGuide] = useState(false);
+  const [showReference, setShowReference] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [recordingError, setRecordingError] = useState("");
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    fetch("/data/speaking-questions.json")
+      .then((response) => response.json())
+      .then((data: { questions: SpeakingQuestion[] }) => setQuestions(data.questions));
+    try {
+      setDone(new Set(JSON.parse(localStorage.getItem("tcf-speaking-done") || "[]")));
+    } catch {
+      setDone(new Set());
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      recorderRef.current?.stream.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  const categories = Array.from(new Set(questions.map((item) => item.category))).sort();
+  const filtered = questions.filter((item) => {
+    const query = search.trim().toLocaleLowerCase("fr");
+    return (task === "all" || item.tache === task) &&
+      (category === "all" || item.category === category) &&
+      (!query || `${item.category} ${item.promptFr}`.toLocaleLowerCase("fr").includes(query));
+  });
+  const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  const resetFilters = () => { setTask("all"); setCategory("all"); setSearch(""); };
+  const toggleDone = (id: number) => {
+    const next = new Set(done);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setDone(next);
+    localStorage.setItem("tcf-speaking-done", JSON.stringify(Array.from(next)));
+  };
+  const openQuestion = (question: SpeakingQuestion) => {
+    setSelected(question); setShowGuide(false); setShowReference(false); setElapsed(0); setRecordingError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const startRecording = async () => {
+    setRecordingError("");
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setRecordingError("Audio recording is not supported in this browser."); return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        setAudioUrl(URL.createObjectURL(blob));
+        stream.getTracks().forEach((track) => track.stop());
+      };
+      recorderRef.current = recorder;
+      recorder.start(); setElapsed(0); setRecording(true);
+      timerRef.current = setInterval(() => setElapsed((time) => time + 1), 1000);
+    } catch {
+      setRecordingError("Microphone access was not granted. Check your browser permission and try again.");
+    }
+  };
+  const stopRecording = () => {
+    recorderRef.current?.stop(); setRecording(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+  };
+
+  if (selected) {
+    const referenceItems = selected.referenceAnswer.bulletItems;
+    return (
+      <div className="shell speaking-shell">
+        {nav()}
+        <main className="speaking-session">
+          <button className="writing-back" onClick={() => { if (recording) stopRecording(); setSelected(null); }}>← All speaking prompts</button>
+          <div className="speaking-session-meta"><span className={`writing-task task-${selected.tache}`}>Task {selected.tache}</span><span>{formatTime(selected.durationSeconds)}</span></div>
+          <div className="speaking-prompt-number">Prompt {String(selected.id).padStart(2, "0")}</div>
+          <h1>{selected.category}</h1>
+          <section className="speaking-prompt"><p>{selected.promptFr}</p></section>
+          <section className="speaking-guide-bar">
+            <div><span>Quick-set framework</span><p>{selected.quickSetSupport?.coachTip || "Organize your response clearly before you begin."}</p></div>
+            <button className="btn secondary" onClick={() => setShowGuide(!showGuide)}>{showGuide ? "Hide guide" : "Show guide"}</button>
+          </section>
+          {showGuide && selected.quickSetSupport?.template && <section className="speaking-guide">
+            <div><span>Reusable structure</span><h2>{selected.quickSetSupport.template.title}</h2><p>{selected.quickSetSupport.template.summary}</p></div>
+            <ol>{selected.quickSetSupport.template.templateLines.map((line) => <li key={line}>{line}</li>)}</ol>
+          </section>}
+          <p className="speaking-instruction">Speak naturally and stay focused on the prompt. Your recording remains on this device and is not uploaded.</p>
+          <section className={`speaking-recorder ${recording ? "active" : ""}`}>
+            <div className="speaking-recorder-status"><span className="speaking-mic">●</span><div><strong>{recording ? "Recording…" : "Practice recording"}</strong><small>{recording ? `${formatTime(elapsed)} / ${formatTime(selected.durationSeconds)}` : "Use your microphone to rehearse your answer"}</small></div></div>
+            <button className={`btn ${recording ? "speaking-stop" : ""}`} onClick={recording ? stopRecording : startRecording}>{recording ? "Stop recording" : "Start recording"}</button>
+          </section>
+          {recordingError && <p className="speaking-error" role="alert">{recordingError}</p>}
+          {audioUrl && <section className="speaking-playback"><div><strong>Your latest recording</strong><span>{formatTime(elapsed)}</span></div><audio controls src={audioUrl} /></section>}
+          <div className="speaking-session-actions">
+            <button className="btn secondary" onClick={() => setShowReference(!showReference)}>{showReference ? "Hide reference" : "Review reference answer"}</button>
+            <button className="btn" onClick={() => toggleDone(selected.id)}>{done.has(selected.id) ? "Mark as not done" : "Mark practice complete"}</button>
+          </div>
+          {showReference && <section className="speaking-reference"><span>Reference answer</span>{referenceItems ? <ul>{referenceItems.map((item) => <li key={item}>{item}</li>)}</ul> : <p>{selected.referenceAnswer.text}</p>}</section>}
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shell speaking-shell">
+      {nav()}
+      <main className="speaking-page">
+        <header className="speaking-header">
+          <button className="writing-back" onClick={onBack}>← Dashboard</button>
+          <div className="speaking-kicker">Expression orale</div>
+          <h1>Speaking practice</h1>
+          <p>Build confidence with the 52-question Quick Set. Filter by task or topic, rehearse with a reusable structure, and record yourself directly in the browser.</p>
+          <div className="speaking-stats"><div><strong>{questions.length}</strong><span>core prompts</span></div><div><strong>{questions.filter((q) => q.tache === 2).length}</strong><span>Task 2</span></div><div><strong>{questions.filter((q) => q.tache === 3).length}</strong><span>Task 3</span></div><div><strong>{done.size}</strong><span>completed</span></div></div>
+        </header>
+        <section className="speaking-controls">
+          <div className="writing-tabs" role="group" aria-label="Filter by speaking task">
+            {(["all", 2, 3] as const).map((value) => <button key={value} className={task === value ? "active" : ""} onClick={() => setTask(value)}>{value === "all" ? "All tasks" : `Task ${value}`}<span>{value === "all" ? questions.length : questions.filter((q) => q.tache === value).length}</span></button>)}
+          </div>
+          <div className="speaking-filter-row"><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search prompts…" aria-label="Search speaking prompts"/><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Filter by category"><option value="all">All categories</option>{categories.map((value) => <option key={value}>{value}</option>)}</select><button onClick={resetFilters}>Reset</button></div>
+        </section>
+        <div className="speaking-result-count">{filtered.length} prompt{filtered.length === 1 ? "" : "s"} shown</div>
+        <section className="speaking-list">
+          {filtered.map((item) => <article className="speaking-card" key={item.id}>
+            <div className="speaking-card-top"><div><span className={`writing-task task-${item.tache}`}>Task {item.tache}</span><span>{item.category}</span><span>Prompt {String(item.id).padStart(2, "0")}</span></div><span>{formatTime(item.durationSeconds)}</span></div>
+            <p>{item.promptFr}</p>
+            <div className="speaking-card-bottom"><span className={done.has(item.id) ? "done" : ""}>{done.has(item.id) ? "✓ Completed" : "Not done"}</span><button className="btn secondary" onClick={() => openQuestion(item)}>Start practice →</button></div>
+          </article>)}
+          {!questions.length && <div className="writing-empty">Loading speaking prompts…</div>}
+          {questions.length > 0 && !filtered.length && <div className="writing-empty">No prompts match these filters.</div>}
+        </section>
+      </main>
+    </div>
   );
 }
 
