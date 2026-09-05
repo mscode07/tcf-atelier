@@ -318,13 +318,14 @@ export default function HomePage() {
         className="brand"
         onClick={() => setRoute(user ? "dashboard" : "home")}
       >
-        tcf<span>·</span>material
+        <span className="brand-mark" aria-hidden="true">TM</span>
+        <span className="brand-copy">TCF <b>Material</b><small>French exam preparation</small></span>
       </button>
       <div className="nav-actions">
         {!minimal && (
           <>
-            <button className="nav-link" onClick={() => setRoute("home")}>
-              Features
+            <button className="nav-link" onClick={() => { setRoute("home"); setTimeout(() => document.querySelector("#features")?.scrollIntoView(), 0); }}>
+              Practice
             </button>
             <button className="nav-link" onClick={() => { window.location.href = "/clb-calculator"; }}>
               CLB Calculator
@@ -353,9 +354,10 @@ export default function HomePage() {
             </button>
           </>
         ) : (
-          <button className="btn" onClick={() => setRoute("auth")}>
-            Sign in
-          </button>
+          <>
+            <button className="nav-signin" onClick={() => setRoute("auth")}>Sign in</button>
+            <button className="btn nav-cta" onClick={() => setRoute("auth")}>Start practising</button>
+          </>
         )}
       </div>
     </nav>
@@ -366,26 +368,21 @@ export default function HomePage() {
       {nav()}
       <main>
         <section className="hero">
-          <div>
-            <div className="text-xl font-medium text-blue-600">
-              The focused route to your TCF score
-            </div>
+          <div className="hero-copy">
+            <div className="hero-badge"><span>✦</span> The focused route to your TCF score</div>
             <h1>
-              French practice,
-              <br />
+              French practice,<br />
               <em>without the noise.</em>
             </h1>
             <p className="lede">
-              Forty full-length TCF practice tests, clear explanations, and a
-              calmer way to build confidence — from your first A1 question to
-              C1.
+              Forty full-length TCF practice tests, clear explanations, and a calmer way to build exam confidence — from your first A1 question to C1.
             </p>
             <div className="hero-actions">
               <button
                 className="btn"
                 onClick={() => setRoute(user ? "dashboard" : "auth")}
               >
-                Start practicing →
+                Start practising free <span>→</span>
               </button>
               <button
                 className="btn secondary"
@@ -393,62 +390,55 @@ export default function HomePage() {
                   document.querySelector("#features")?.scrollIntoView()
                 }
               >
-                See how it works
+                Explore the platform
               </button>
             </div>
-            <div className="flex gap-10 font-medium text-lg mt-4 text-gray-500">
-              <span>✅ 40 full tests</span>
-              <span>✅ Instant explanations</span>
-              <span>✅ Real score tracking</span>
+            <div className="mini-proof">
+              <span><i>✓</i> No subscription</span>
+              <span><i>✓</i> All four skills</span>
+              <span><i>✓</i> Learn at your pace</span>
             </div>
           </div>
-          <div className="preview">
+          <div className="hero-visual" aria-label="TCF practice dashboard preview">
+            <div className="maple-stamp" aria-hidden="true">✦</div>
+            <div className="floating-card floating-score"><span>Target score</span><strong>CLB 7+</strong><small>On track ↑</small></div>
+            <div className="preview">
             <div className="preview-top">
-              <span className="mono">Review mode</span>
-              <span>03 / 39</span>
+              <span className="preview-brand">TCF Reading</span>
+              <span className="preview-progress">Question 03 / 39</span>
             </div>
             <div className="question-card">
-              <span className="level">A1</span>
+              <div className="question-meta"><span className="level">A1</span><span>Reading comprehension</span></div>
               <div className="passage">
                 Le train pour Lyon partira exceptionnellement voie 8.
               </div>
+              <p className="preview-question">Que doivent faire les voyageurs ?</p>
               <div className="choice">A. Acheter un billet</div>
-              <div className="choice active">B. Changer de quai</div>
+              <div className="choice active"><span>B. Changer de quai</span><b>✓</b></div>
               <div className="choice">C. Appeler un taxi</div>
+            </div>
+            <div className="preview-footer"><span>Great work — that&apos;s correct!</span><button>Next question →</button></div>
             </div>
           </div>
         </section>
         <div className="stats-strip">
-          <div className="flex flex-col justify-center items-center">
-            <strong className="text-6xl font-normal">40</strong>
-            <span className="flex gap-10 font-medium text-lg mt-4 text-gray-500">
-              curated practice tests
-            </span>
+          <div><strong>40</strong><span>Complete practice tests</span>
           </div>
-          <div className="flex flex-col justify-center items-center">
-            <strong className="text-6xl font-normal">699</strong>
-            <span className="font-medium text-lg mt-4 text-gray-500">
-              CRS score mapping
-            </span>
+          <div><strong>4</strong><span>Skills in one platform</span>
           </div>
-          <div className="flex flex-col justify-center items-center">
-            <strong className="text-6xl font-normal">1</strong>
-            <span className="font-medium text-lg mt-4 text-gray-500">
-              focused review mode
-            </span>
+          <div><strong>A1–C1</strong><span>Progressive difficulty</span>
+          </div>
+          <div><strong>699</strong><span>TCF score mapping</span>
           </div>
         </div>
         <section className="section" id="features">
           <div className="section-head">
             <div>
-              <div className="text-lg text-blue-600 font-semibold">
-                A complete practice room
-              </div>
-              <h2>Learn from every answer.</h2>
+              <div className="section-kicker">Everything you need</div>
+              <h2>Master every part of the TCF.</h2>
             </div>
             <p className="text-lg max-w-xl">
-              Work at your own pace, check every answer, and understand each
-              correction before moving forward.
+              One calm, structured workspace for building the exact French skills your exam preparation calls for.
             </p>
           </div>
           <div className="feature-grid">
@@ -489,6 +479,23 @@ export default function HomePage() {
                 <p className="text-md font-semibold">{item[2]}</p>
               </article>
             ))}
+          </div>
+        </section>
+        <section className="level-journey" aria-label="TCF level journey">
+          <div className="level-intro"><div className="section-kicker">Progress you can see</div><h2>Grow from foundation to fluency.</h2><p>Practice moves with you, from everyday language to confident, complex communication.</p></div>
+          <div className="level-track">
+            {[['A1','Discover','First essentials'],['A2','Build','Everyday French'],['B1','Connect','Independent use'],['B2','Express','Confident fluency'],['C1','Master','Advanced control']].map((level, index) => <div className="level-stop" key={level[0]}><span>{level[0]}</span><strong>{level[1]}</strong><small>{level[2]}</small>{index < 4 && <i />}</div>)}
+          </div>
+        </section>
+        <section className="study-path">
+          <div className="study-path-copy">
+            <div className="section-kicker">A smarter study rhythm</div>
+            <h2>A clear path from first practice to test day.</h2>
+            <p>Stop guessing what to study next. Short, focused sessions make progress visible and keep your preparation moving.</p>
+            <button className="btn secondary" onClick={() => setRoute(user ? "dashboard" : "auth")}>Build my study plan →</button>
+          </div>
+          <div className="path-steps">
+            {[['01','Choose your skill','Focus on listening, reading, writing, or speaking.'],['02','Practise realistically','Work through exam-style questions at your own pace.'],['03','Learn from feedback','See corrections and understand where to improve.'],['04','Track your readiness','Follow your scores and prepare with confidence.']].map((step) => <div className="path-step" key={step[0]}><span>{step[0]}</span><div><h3>{step[1]}</h3><p>{step[2]}</p></div></div>)}
           </div>
         </section>
         <section className="section pricing-section" id="pricing">
@@ -578,7 +585,14 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+        <section className="testimonial-section">
+          <div className="testimonial-mark">“</div>
+          <blockquote>TCF Material makes preparation feel manageable. I can see what I need to improve, practise it, and go into each session with a plan.</blockquote>
+          <div className="testimonial-person"><span>AM</span><div><strong>Amélie M.</strong><small>TCF learner</small></div></div>
+        </section>
+        <section className="final-cta"><div><span>READY WHEN YOU ARE</span><h2>Make French your next milestone.</h2></div><button className="btn" onClick={() => setRoute(user ? "dashboard" : "auth")}>Start practising today →</button></section>
       </main>
+      <footer className="site-footer"><div className="footer-brand"><span className="brand-mark">TM</span><div><strong>TCF Material</strong><p>Focused French preparation for confident exam day performance.</p></div></div><div className="footer-links"><button onClick={() => document.querySelector("#features")?.scrollIntoView()}>Practice</button><button onClick={() => { window.location.href = "/clb-calculator"; }}>CLB Calculator</button><button onClick={() => document.querySelector("#pricing")?.scrollIntoView()}>Pricing</button></div><small>© 2026 TCF Material. Made for focused French learners.</small></footer>
     </div>
   );
 
