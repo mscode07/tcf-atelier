@@ -143,3 +143,37 @@
     font-size: 34px;
   }
 }
+
+/* Keep chart titles and empty states in normal flow at every text size. */
+.module-overviews { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.module-overview { min-width: 0; }
+.module-overview-head { flex-wrap: wrap; }
+.module-overview h3 { line-height: 1.2; }
+.module-overview .score-trend,
+.score-trend { display: flex; flex-direction: column; gap: 16px; height: auto !important; min-height: 190px; padding: 22px; }
+.score-trend-label { color: var(--muted); font-size: 14px; font-weight: 600; }
+.score-trend .chart-empty { position: static; flex: 1; min-height: 80px; margin: 0; text-align: center; font-size: 14px; }
+.score-trend .score-chart { position: static; width: 100%; height: 110px; flex: none; }
+.overview-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.overview-meta span { min-width: 0; padding: 10px 6px; overflow-wrap: anywhere; }
+.overview-meta p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+@media (max-width: 800px) { .module-overviews { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 380px) { .module-overview { padding: 16px; } .module-overview-head .btn { width: 100%; } }
+
+/* Phone dashboard: make progress easy to scan without a long stack of cards. */
+@media (max-width: 600px) {
+  .overview-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 24px; }
+  .overview-stats div { min-width: 0; padding: 16px 10px; border-radius: 14px; }
+  .overview-stats strong { font: 750 28px/1.2 var(--font-manrope), sans-serif; font-variant-numeric: tabular-nums; }
+  .overview-stats span { display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; }
+  .module-overviews { gap: 14px; margin-bottom: 32px; }
+  .module-overview { padding: 18px; }
+  .module-overview-head { gap: 12px; align-items: center; }
+  .module-overview h3 { padding-top: 0; margin-top: 8px; font: 700 24px/1.25 var(--font-manrope), sans-serif; letter-spacing: -.035em; }
+  .module-overview-head .btn { padding: 10px 12px; font-size: 13px; }
+  .module-overview .score-trend { margin: 16px 0; min-height: 148px; padding: 16px; border-radius: 12px; background: #f8faff; }
+  .score-trend-label { font-size: 13px; line-height: 1.5; }
+  .score-trend .chart-empty { min-height: 48px; line-height: 1.5; }
+  .overview-meta span { padding: 10px 4px; border: 0; border-radius: 0; }
+  .overview-meta span + span { border-left: 1px solid var(--line); padding-left: 10px; }
+}
