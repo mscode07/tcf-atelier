@@ -55,6 +55,12 @@ email without replacing their password hash.
 
 ## Stripe payments
 
+Set `AUTH_URL=https://your-domain.example` in Hostinger to your actual public
+site origin. Checkout uses this URL for both success and cancellation redirects
+because the hosting proxy can expose an internal address in the request URL.
+Production checkout requires a public HTTPS URL. Redeploy after updating the
+code and configuration, then start a new checkout session to test the redirects.
+
 Set `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`,
 `STRIPE_WEBHOOK_SECRET`, and the three `STRIPE_PRICE_*` IDs. In Stripe, point a
 webhook endpoint at `https://your-domain.example/api/stripe/webhook` and subscribe

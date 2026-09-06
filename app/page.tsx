@@ -346,10 +346,10 @@ export default function HomePage() {
         )}
         {user ? (
           <>
-            <button className="nav-link" onClick={() => setRoute("dashboard")}>
+            <button className="nav-link account-link" onClick={() => setRoute("dashboard")}>
               Dashboard
             </button>
-            <button className="nav-link" onClick={logout}>
+            <button className="nav-link account-link" onClick={logout}>
               Sign out
             </button>
           </>
@@ -360,6 +360,17 @@ export default function HomePage() {
           </>
         )}
       </div>
+      <details className="mobile-nav" onClick={(event) => {
+        if ((event.target as HTMLElement).closest("button")) event.currentTarget.open = false;
+      }}>
+        <summary aria-label="Open navigation menu">Menu ☰</summary>
+        <div className="mobile-nav-panel">
+          <button onClick={() => { setRoute("home"); setTimeout(() => document.querySelector("#features")?.scrollIntoView(), 0); }}>Practice</button>
+          <a href="/clb-calculator">CLB Calculator</a>
+          <button onClick={() => { setRoute("home"); setTimeout(() => document.querySelector("#pricing")?.scrollIntoView(), 0); }}>Pricing</button>
+          {user ? <><button onClick={() => setRoute("dashboard")}>Dashboard</button><button onClick={logout}>Sign out</button></> : <button onClick={() => setRoute("auth")}>Sign in</button>}
+        </div>
+      </details>
     </nav>
   );
 
@@ -684,7 +695,7 @@ export default function HomePage() {
             <span className="text-gray-500 font-medium">overall average</span>
           </div>
         </div>
-        <div className="">
+        <div className="module-overviews">
           <ModuleOverview
             name="Listening"
             data={progressData?.modules.listening}
@@ -696,7 +707,7 @@ export default function HomePage() {
             onOpen={() => openModule("Reading")}
           />
         </div>
-        <div className="flex justify-between mt-10">
+        <div className="dashboard-section-head">
           <div>
             <div className="text-blue-600 text-xl font-bold">Practice</div>
             <h2 className="text-4xl font-bold mt-2">Choose a skill</h2>
@@ -1348,8 +1359,8 @@ function ScoreChart({
     )
     .join(" ");
   return (
-    <div className="chart" style={compact ? { height: 190 } : undefined}>
-      <span className="text-lg font-semibold text-gray-500">
+    <div className={`chart score-trend ${compact ? "compact" : ""}`}>
+      <span className="score-trend-label">
         {label} · last 5 completed attempts
       </span>
       {scores.length ? (
@@ -1374,11 +1385,7 @@ function ScoreChart({
           ))}
         </svg>
       ) : (
-        <div className="flex justify-center items-center">
-          <span className="text-md font-medium text-gray-500 pt-10">
-            Complete a test to start your score trend.
-          </span>
-        </div>
+        <p className="chart-empty">Complete a test to start your score trend.</p>
       )}
     </div>
   );
@@ -1393,7 +1400,7 @@ function ModuleOverview({
   onOpen: () => void;
 }) {
   return (
-    <article className="module-overview text-xl mb-5">
+    <article className="module-overview">
       <div className="module-overview-head">
         <div>
           <span className="font-bold text-blue-600">{name}</span>
@@ -1404,7 +1411,7 @@ function ModuleOverview({
         </button>
       </div>
       <ScoreChart compact scores={data?.recentScores} label={name} />
-      <div className="flex justify-between pt-10">
+      <div className="overview-meta">
         <span>
           <strong>{data?.attempted ?? 0}</strong> <p className="text-md font-medium text-gray-500">attempted</p>
         </span>
