@@ -1,3 +1,4 @@
+import { isModule } from "@/lib/admin/types";
 import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
@@ -7,24 +8,42 @@ import { payments } from "@/lib/db/schema";
 import { getStripe } from "@/lib/stripe";
 import { fulfillCheckoutSession } from "@/lib/stripe-fulfillment";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const requestedModule = new URL(request.url).searchParams.get("module");
+  const module = isModule(requestedModule) ? requestedModule : undefined;
   const session = await auth();
-  if (!session?.user?.email) return NextResponse.json({ authenticated: false, active: false }, { status: 401 });
-  let access = await getAccessByEmail(session.user.email);
+  if (!session?.user?.email)
+    return NextResponse.json(
+      { authenticated: false, active: false },
+      { status: 401 },
+    );
+  let access = await getAccessByEmail(session.user.email, module);
 
   // Recover a paid Checkout if webhook delivery was delayed or unavailable locally.
   if (!access.active && access.userId) {
-    const [pendingPayment] = await getDb().select({ checkoutSessionId: payments.providerOrderId })
+    const [pendingPayment] = await getDb()
+      .select({ checkoutSessionId: payments.providerOrderId })
       .from(payments)
-      .where(and(eq(payments.userId, access.userId), eq(payments.provider, "stripe"), eq(payments.status, "created")))
+      .where(
+        and(
+          eq(payments.userId, access.userId),
+          eq(payments.provider, "stripe"),
+          eq(payments.status, "created"),
+        ),
+      )
       .orderBy(desc(payments.createdAt))
       .limit(1);
     if (pendingPayment?.checkoutSessionId?.startsWith("cs_")) {
       try {
-        const checkout = await getStripe().checkout.sessions.retrieve(pendingPayment.checkoutSessionId);
-        if (checkout.payment_status === "paid" && checkout.metadata?.userId === access.userId) {
+        const checkout = await getStripe().checkout.sessions.retrieve(
+          pendingPayment.checkoutSessionId,
+        );
+        if (
+          checkout.payment_status === "paid" &&
+          checkout.metadata?.userId === access.userId
+        ) {
           await fulfillCheckoutSession(checkout);
-          access = await getAccessByEmail(session.user.email);
+          access = await getAccessByEmail(session.user.email, module);
         }
       } catch (error) {
         console.error("Pending Stripe payment reconciliation failed", error);
@@ -34,12 +53,17 @@ export async function GET() {
 
   const [localPart, domain = ""] = session.user.email.toLowerCase().split("@");
   const maskedEmail = `${localPart.slice(0, 2)}${"*".repeat(Math.max(3, localPart.length - 2))}@${domain}`;
-  return NextResponse.json({
-    authenticated: true,
-    active: access.active,
-    expiresAt: access.expiresAt?.toISOString() ?? null,
-    watermark: `${maskedEmail} · ${access.userId?.slice(0, 8) ?? "unknown"}`,
-  }, {
-    headers: { "Cache-Control": "private, no-store, max-age=0" },
-  });
+  return NextResponse.json(
+    {
+      authenticated: true,
+      modules: access.modules,
+      isAdmin: access.isAdmin,
+      active: access.active,
+      expiresAt: access.expiresAt?.toISOString() ?? null,
+      watermark: `${maskedEmail} · ${access.userId?.slice(0, 8) ?? "unknown"}`,
+    },
+    {
+      headers: { "Cache-Control": "private, no-store, max-age=0" },
+    },
+  );
 }

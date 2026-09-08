@@ -179,6 +179,7 @@ export const testAttempts = pgTable("test_attempts", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   testId: uuid("test_id").notNull().references(() => practiceTests.id, { onDelete: "cascade" }),
   attemptNumber: integer("attempt_number").notNull(),
+  contentVersion: integer("content_version").notNull().default(1),
   mode: testModeEnum("mode").notNull().default("exam"),
   status: attemptStatusEnum("status").notNull().default("in_progress"),
   score: integer("score").notNull().default(0),
@@ -232,3 +233,43 @@ export type Course = typeof courses.$inferSelect;
 export type PracticeTest = typeof practiceTests.$inferSelect;
 export type TestAttempt = typeof testAttempts.$inferSelect;
 export type AttemptAnswer = typeof attemptAnswers.$inferSelect;
+
+// A complete versioned document per test preserves the original learning formats.
+export const materialContent = pgTable("material_content", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  module: moduleTypeEnum("module").notNull(),
+  testNumber: integer("test_number").notNull(),
+  title: text("title").notNull(),
+  status: text("status").notNull().default("draft"),
+  questions: jsonb("questions").$type<import("../admin/types").MaterialQuestion[]>().notNull().default([]),
+  version: integer("version").notNull().default(1),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [uniqueIndex("material_content_module_number_unique").on(t.module, t.testNumber)]);
+
+export const materialRevisions = pgTable("material_revisions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  contentId: uuid("content_id").notNull().references(() => materialContent.id),
+  version: integer("version").notNull(),
+  snapshot: jsonb("snapshot").notNull(),
+  actorId: uuid("actor_id").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const moduleAccessGrants = pgTable("module_access_grants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  module: moduleTypeEnum("module").notNull(),
+  kind: text("kind").notNull().default("grant"),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  reason: text("reason").notNull().default(""),
+  actorId: uuid("actor_id").notNull().references(() => users.id),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("module_access_grants_user_index").on(t.userId, t.module)]);
+export const adminActivity = pgTable("admin_activity", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: uuid("actor_id").notNull().references(() => users.id),
+  action: text("action").notNull(),
+  detail: text("detail").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

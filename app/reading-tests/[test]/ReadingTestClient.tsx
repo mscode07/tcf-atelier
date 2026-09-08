@@ -3,9 +3,31 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-type ReadingQuestion = { number: number; level: string; passage: string; question: string; options: string[]; correct: string };
+type ReadingQuestion = {
+  number: number;
+  level: string;
+  passage: string;
+  question: string;
+  options: string[];
+  correct: string;
+  audioUrl?: string;
+  imageUrl?: string;
+  explanation?: string;
+};
 
-export default function ReadingTestClient({ test, questions, mode }: { test: number; questions: ReadingQuestion[]; mode: "exam" | "review" }) {
+export default function ReadingTestClient({
+  test,
+  questions,
+  mode,
+  module = "reading",
+  version = 1,
+}: {
+  test: number;
+  questions: ReadingQuestion[];
+  mode: "exam" | "review";
+  module?: "reading" | "listening";
+  version?: number;
+}) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [checked, setChecked] = useState<Set<number>>(new Set());
@@ -24,37 +46,69 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
   const isChecked = checked.has(current);
   const correctIndex = question.correct.charCodeAt(0) - 65;
   const showCorrections = mode === "review" || reviewingResults;
-  const score = useMemo(() => questions.reduce((total, item, index) => total + (answers[index] === item.correct.charCodeAt(0) - 65 ? 1 : 0), 0), [answers, questions]);
+  const score = useMemo(
+    () =>
+      questions.reduce(
+        (total, item, index) =>
+          total + (answers[index] === item.correct.charCodeAt(0) - 65 ? 1 : 0),
+        0,
+      ),
+    [answers, questions],
+  );
 
   useEffect(() => {
     const validateAccess = async () => {
       try {
-        const response = await fetch("/api/access", { cache: "no-store" });
+        const response = await fetch(`/api/access?module=${module}`, {
+          cache: "no-store",
+        });
         if (response.status === 401 || response.status === 403) {
           window.location.replace("/?access=signin_required");
           return;
         }
         if (response.ok) {
-          const access = (await response.json()) as { active?: boolean; watermark?: string };
-          if (!access.active) window.location.replace("/?access=subscription_required");
+          const access = (await response.json()) as {
+            active?: boolean;
+            watermark?: string;
+          };
+          if (!access.active)
+            window.location.replace("/?access=subscription_required");
           if (access.watermark) setWatermarkIdentity(access.watermark);
         }
-      } catch { /* A transient network failure should not discard in-progress work. */ }
+      } catch {
+        /* A transient network failure should not discard in-progress work. */
+      }
     };
     void validateAccess();
     const timer = window.setInterval(() => void validateAccess(), 30_000);
-    const onVisibilityChange = () => { if (!document.hidden) void validateAccess(); };
+    const onVisibilityChange = () => {
+      if (!document.hidden) void validateAccess();
+    };
     document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", onVisibilityChange); };
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
     const blockAction = (event: Event) => event.preventDefault();
-    const blockedEvents = ["copy", "cut", "contextmenu", "dragstart", "selectstart"];
-    blockedEvents.forEach(type => document.addEventListener(type, blockAction));
+    const blockedEvents = [
+      "copy",
+      "cut",
+      "contextmenu",
+      "dragstart",
+      "selectstart",
+    ];
+    blockedEvents.forEach((type) =>
+      document.addEventListener(type, blockAction),
+    );
     const onKeyDown = (event: KeyboardEvent) => {
-      const blockedShortcut = (event.ctrlKey || event.metaKey) && ["c", "s", "p", "u", "a"].includes(event.key.toLowerCase());
-      if (blockedShortcut || event.key === "PrintScreen") event.preventDefault();
+      const blockedShortcut =
+        (event.ctrlKey || event.metaKey) &&
+        ["c", "s", "p", "u", "a"].includes(event.key.toLowerCase());
+      if (blockedShortcut || event.key === "PrintScreen")
+        event.preventDefault();
     };
     const onVisibilityChange = () => setContentShielded(document.hidden);
     const beforePrint = () => setContentShielded(true);
@@ -63,11 +117,16 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("beforeprint", beforePrint);
     window.addEventListener("afterprint", afterPrint);
-    const updateWatermark = () => { setWatermarkPosition(position => (position + 1) % 5); setWatermarkTime(new Date().toLocaleString()); };
+    const updateWatermark = () => {
+      setWatermarkPosition((position) => (position + 1) % 5);
+      setWatermarkTime(new Date().toLocaleString());
+    };
     updateWatermark();
     const watermarkTimer = window.setInterval(updateWatermark, 12_000);
     return () => {
-      blockedEvents.forEach(type => document.removeEventListener(type, blockAction));
+      blockedEvents.forEach((type) =>
+        document.removeEventListener(type, blockAction),
+      );
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("beforeprint", beforePrint);
@@ -77,87 +136,302 @@ export default function ReadingTestClient({ test, questions, mode }: { test: num
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem(`reading-test-${test}`);
-    if (!saved) { setHydrated(true); return; }
-    try { const progress = JSON.parse(saved); setAnswers(progress.answers ?? {}); setCurrent(progress.current ?? 0); setSubmitted(Boolean(progress.submitted)); }
-    catch { /* Ignore invalid local progress. */ }
+    const saved = localStorage.getItem(`${module}-test-${test}-v${version}`);
+    if (!saved) {
+      setHydrated(true);
+      return;
+    }
+    try {
+      const progress = JSON.parse(saved);
+      setAnswers(progress.answers ?? {});
+      setCurrent(
+        Math.max(0, Math.min(questions.length - 1, progress.current ?? 0)),
+      );
+      setSubmitted(Boolean(progress.submitted));
+    } catch {
+      /* Ignore invalid local progress. */
+    }
     setHydrated(true);
   }, [test]);
-  useEffect(() => { localStorage.setItem(`reading-test-${test}`, JSON.stringify({ answers, current, submitted })); }, [answers, current, submitted, test]);
   useEffect(() => {
-    if (!hydrated || Object.keys(answers).length === 0 || finished || submitted) return;
+    localStorage.setItem(
+      `${module}-test-${test}-v${version}`,
+      JSON.stringify({ answers, current, submitted }),
+    );
+  }, [answers, current, submitted, test]);
+  useEffect(() => {
+    if (!hydrated || Object.keys(answers).length === 0 || finished || submitted)
+      return;
     const timer = window.setTimeout(() => {
       void fetch("/api/progress", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ module: "reading", testNumber: test, status: "in_progress", maxScore: questions.length, answeredCount: Object.keys(answers).length }),
+        body: JSON.stringify({
+          module,
+          contentVersion: version,
+          testNumber: test,
+          status: "in_progress",
+          maxScore: questions.length,
+          answeredCount: Object.keys(answers).length,
+        }),
       });
     }, 300);
     return () => window.clearTimeout(timer);
   }, [answers, finished, hydrated, questions.length, submitted, test]);
 
   const checkAnswer = () => {
-    setChecked(previous => new Set(previous).add(current));
+    setChecked((previous) => new Set(previous).add(current));
     if (mode === "exam") goNext();
   };
   const finishTest = async () => {
     const response = await fetch("/api/progress", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ module: "reading", testNumber: test, status: "completed", score, maxScore: questions.length, answeredCount: Object.keys(answers).length }),
+      body: JSON.stringify({
+        module,
+        contentVersion: version,
+        testNumber: test,
+        status: "completed",
+        score,
+        maxScore: questions.length,
+        answeredCount: Object.keys(answers).length,
+      }),
     });
     if (!response.ok) {
-      const result = await response.json().catch(() => ({})) as { error?: string };
-      window.alert(`Progress could not be saved: ${result.error ?? response.status}`);
+      const result = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      window.alert(
+        `Progress could not be saved: ${result.error ?? response.status}`,
+      );
       return;
     }
     setFinished(true);
     setSubmitted(true);
   };
-  const goNext = () => current < questions.length - 1 ? setCurrent(current + 1) : void finishTest();
+  const goNext = () =>
+    current < questions.length - 1
+      ? setCurrent(current + 1)
+      : void finishTest();
 
   useEffect(() => {
     if (mode !== "exam" || finished || submitted) return;
-    const key = `reading-deadline-${test}`;
+    const key = `${module}-deadline-${test}-v${version}`;
     let deadline = Number(sessionStorage.getItem(key));
-    if (!deadline || deadline <= Date.now()) { deadline = Date.now() + 35 * 60 * 1000; sessionStorage.setItem(key, String(deadline)); }
+    if (!deadline || deadline <= Date.now()) {
+      deadline = Date.now() + 35 * 60 * 1000;
+      sessionStorage.setItem(key, String(deadline));
+    }
     const tick = () => {
       const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       setRemainingSeconds(remaining);
-      if (remaining === 0) document.querySelector<HTMLButtonElement>(".reading-topbar .btn")?.click();
+      if (remaining === 0)
+        document
+          .querySelector<HTMLButtonElement>(".reading-topbar .btn")
+          ?.click();
     };
     tick();
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
   }, [finished, mode, submitted, test]);
 
-  if (finished) return <main className="reading-result"><section><span className="level">Reading · Test {test}</span><h1>Test complete.</h1><div className="reading-score">{score}/{questions.length}</div><p>{Object.keys(answers).length} answered · {Math.round(score / questions.length * 100)}%</p><div className="hero-actions centered"><button className="btn secondary" onClick={() => { setReviewingResults(true); setFinished(false); }}>Review answers</button><Link className="btn" href="/">← Dashboard</Link></div></section></main>;
+  if (finished)
+    return (
+      <main className="reading-result">
+        <section>
+          <span className="level">
+            {module === "listening" ? "Listening" : "Reading"} · Test {test}
+          </span>
+          <h1>Test complete.</h1>
+          <div className="reading-score">
+            {score}/{questions.length}
+          </div>
+          <p>
+            {Object.keys(answers).length} answered ·{" "}
+            {Math.round((score / questions.length) * 100)}%
+          </p>
+          <div className="hero-actions centered">
+            <button
+              className="btn secondary"
+              onClick={() => {
+                setReviewingResults(true);
+                setFinished(false);
+              }}
+            >
+              Review answers
+            </button>
+            <Link className="btn" href="/">
+              ← Dashboard
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
 
-  const watermarkPositions = [[8, 18], [58, 16], [30, 47], [66, 70], [10, 76]];
-  const watermarkStyle = { left: `${watermarkPositions[watermarkPosition][0]}%`, top: `${watermarkPositions[watermarkPosition][1]}%` };
+  const watermarkPositions = [
+    [8, 18],
+    [58, 16],
+    [30, 47],
+    [66, 70],
+    [10, 76],
+  ];
+  const watermarkStyle = {
+    left: `${watermarkPositions[watermarkPosition][0]}%`,
+    top: `${watermarkPositions[watermarkPosition][1]}%`,
+  };
 
-  return <div className={`reading-player protected-material ${contentShielded ? "content-shielded" : ""}`}>
-    <div className="security-watermark" style={watermarkStyle}>{watermarkIdentity} · {watermarkTime}</div>
-    <div className="security-shield"><strong>Protected material</strong><span>Return to this tab to continue.</span></div>
-    <aside className={`reading-sidebar ${sidebarOpen ? "open" : ""}`}>
-      <div className="reading-test-label"><strong>Test {test}</strong><span>{Object.keys(answers).length} / {questions.length} answered</span></div>
-      <div className="reading-question-nav">{questions.map((item, index) => <button key={item.number} className={`${index === current ? "current" : ""} ${answers[index] !== undefined ? "answered" : ""}`} onClick={() => { setCurrent(index); setSidebarOpen(false); }}><i/><span>Q{item.number}</span><b className={`reading-level level-${item.level.toLowerCase()}`}>{item.level}</b></button>)}</div>
-    </aside>
-    <main className="reading-workspace">
-      <header className="reading-topbar"><button className="reading-menu" aria-label="Toggle question list" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button><strong>Q{question.number}/{questions.length}{mode === "exam" && ` · ${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`}</strong><div><button className="btn ghost" onClick={finishTest}>End test</button><Link className="btn ghost" href="/">← Dashboard</Link></div></header>
-      <section className="reading-content">
-        <div className="reading-meta"><span className={`reading-level level-${question.level.toLowerCase()}`}>{question.level}</span></div>
-        {question.passage && <article className="reading-passage"><span>Passage text</span><p>{question.passage}</p></article>}
-        <h2>{question.question}</h2>
-        <div className="reading-options">{question.options.map((option, index) => {
-          let state = selected === index ? "selected" : "";
-          if (showCorrections && isChecked && index === correctIndex) state = "correct";
-          if (showCorrections && isChecked && selected === index && index !== correctIndex) state = "wrong";
-          return <button key={index} className={state} disabled={isChecked} onClick={() => setAnswers(previous => ({ ...previous, [current]: index }))}><b>{"ABCD"[index]}.</b><span>{option}</span></button>;
-        })}</div>
-        {showCorrections && isChecked && <p className={`reading-feedback ${selected === correctIndex ? "correct" : "wrong"}`}>{selected === correctIndex ? "Correct answer." : `Correct answer: ${question.correct}. ${question.options[correctIndex]}`}</p>}
-        {!isChecked ? <button className="btn reading-check" disabled={selected === undefined} onClick={checkAnswer}>{mode === "exam" ? (current === questions.length - 1 ? "Finish test" : "Confirm & next →") : "Check answer"}</button> : <button className="btn reading-check" onClick={goNext}>{current === questions.length - 1 ? "View results" : "Next question →"}</button>}
-      </section>
-    </main>
-  </div>;
+  return (
+    <div
+      className={`reading-player protected-material ${contentShielded ? "content-shielded" : ""}`}
+    >
+      <div className="security-watermark" style={watermarkStyle}>
+        {watermarkIdentity} · {watermarkTime}
+      </div>
+      <div className="security-shield">
+        <strong>Protected material</strong>
+        <span>Return to this tab to continue.</span>
+      </div>
+      <aside className={`reading-sidebar ${sidebarOpen ? "open" : ""}`}>
+        <div className="reading-test-label">
+          <strong>Test {test}</strong>
+          <span>
+            {Object.keys(answers).length} / {questions.length} answered
+          </span>
+        </div>
+        <div className="reading-question-nav">
+          {questions.map((item, index) => (
+            <button
+              key={item.number}
+              className={`${index === current ? "current" : ""} ${answers[index] !== undefined ? "answered" : ""}`}
+              onClick={() => {
+                setCurrent(index);
+                setSidebarOpen(false);
+              }}
+            >
+              <i />
+              <span>Q{item.number}</span>
+              <b className={`reading-level level-${item.level.toLowerCase()}`}>
+                {item.level}
+              </b>
+            </button>
+          ))}
+        </div>
+      </aside>
+      <main className="reading-workspace">
+        <header className="reading-topbar">
+          <button
+            className="reading-menu"
+            aria-label="Toggle question list"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            ☰
+          </button>
+          <strong>
+            Q{question.number}/{questions.length}
+            {mode === "exam" &&
+              ` · ${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`}
+          </strong>
+          <div>
+            <button className="btn ghost" onClick={finishTest}>
+              End test
+            </button>
+            <Link className="btn ghost" href="/">
+              ← Dashboard
+            </Link>
+          </div>
+        </header>
+        <section className="reading-content">
+          <div className="reading-meta">
+            <span
+              className={`reading-level level-${question.level.toLowerCase()}`}
+            >
+              {question.level}
+            </span>
+          </div>
+          {question.passage && (
+            <article className="reading-passage">
+              <span>Passage text</span>
+              <p>{question.passage}</p>
+            </article>
+          )}
+          {question.audioUrl && (
+            <audio
+              key={question.audioUrl}
+              controls
+              controlsList="nodownload"
+              src={question.audioUrl}
+              style={{ width: "100%", marginBottom: 24 }}
+            />
+          )}
+          {question.imageUrl && (
+            <img
+              src={question.imageUrl}
+              alt="Question illustration"
+              style={{ maxWidth: "100%", maxHeight: 360, objectFit: "contain" }}
+            />
+          )}
+          <h2>{question.question}</h2>
+          <div className="reading-options">
+            {question.options.map((option, index) => {
+              let state = selected === index ? "selected" : "";
+              if (showCorrections && isChecked && index === correctIndex)
+                state = "correct";
+              if (
+                showCorrections &&
+                isChecked &&
+                selected === index &&
+                index !== correctIndex
+              )
+                state = "wrong";
+              return (
+                <button
+                  key={index}
+                  className={state}
+                  disabled={isChecked}
+                  onClick={() =>
+                    setAnswers((previous) => ({
+                      ...previous,
+                      [current]: index,
+                    }))
+                  }
+                >
+                  <b>{"ABCDEFGH"[index]}.</b>
+                  <span>{option}</span>
+                </button>
+              );
+            })}
+          </div>
+          {showCorrections && isChecked && (
+            <p
+              className={`reading-feedback ${selected === correctIndex ? "correct" : "wrong"}`}
+            >
+              {selected === correctIndex
+                ? "Correct answer."
+                : `Correct answer: ${question.correct}. ${question.options[correctIndex]}`}
+            </p>
+          )}
+          {isChecked && question.explanation && <p>{question.explanation}</p>}
+          {!isChecked ? (
+            <button
+              className="btn reading-check"
+              disabled={selected === undefined}
+              onClick={checkAnswer}
+            >
+              {mode === "exam"
+                ? current === questions.length - 1
+                  ? "Finish test"
+                  : "Confirm & next →"
+                : "Check answer"}
+            </button>
+          ) : (
+            <button className="btn reading-check" onClick={goNext}>
+              {current === questions.length - 1
+                ? "View results"
+                : "Next question →"}
+            </button>
+          )}
+        </section>
+      </main>
+    </div>
+  );
 }
