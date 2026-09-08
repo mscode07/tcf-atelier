@@ -1,3 +1,5 @@
+import { loadEnvConfig } from "@next/env";
+loadEnvConfig(process.cwd());
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
@@ -6,7 +8,9 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     // Schema generation is offline; migrate uses the real URL from Hostinger/Supabase.
-    url: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/postgres",
+    url:
+      process.env.DATABASE_URL ||
+      "postgresql://postgres:postgres@localhost:5432/postgres",
   },
   strict: true,
   verbose: true,

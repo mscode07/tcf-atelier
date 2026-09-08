@@ -1,35 +1,44 @@
 {
-    "name": "tcf-Material",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "start": "next start",
-        "typecheck": "tsc --noEmit",
-        "verify:access-expiry": "node scripts/verify_access_expiry.mjs",
-        "db:generate": "drizzle-kit generate",
-        "db:migrate": "drizzle-kit migrate",
-        "db:studio": "drizzle-kit studio"
-    },
-    "dependencies": {
-        "@stripe/stripe-js": "^9.14.0",
-        "bcryptjs": "^3.0.3",
-        "drizzle-orm": "^0.45.2",
-        "next": "^16.3.2",
-        "next-auth": "^5.0.0-beta.32",
-        "postgres": "^3.4.9",
-        "react": "^19.1.1",
-        "react-dom": "^19.1.1",
-        "stripe": "^22.5.0"
-    },
-    "devDependencies": {
-        "@tailwindcss/postcss": "^4.3.3",
-        "@types/node": "^22.10.2",
-        "@types/react": "^19.0.2",
-        "@types/react-dom": "^19.0.2",
-        "drizzle-kit": "^0.31.10",
-        "tailwindcss": "^4.3.3",
-        "typescript": "^5.7.2"
-    }
+  "name": "tcf-Material",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "postbuild": "node scripts/verify_build_assets.mjs",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "verify:access-expiry": "node scripts/verify_access_expiry.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "content:seed": "node --import tsx scripts/setup_admin.ts",
+    "test:admin": "node --import tsx --test tests/admin.test.ts"
+  },
+  "dependencies": {
+    "@stripe/stripe-js": "^9.14.0",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
+    "mammoth": "^1.12.2",
+    "next": "^16.3.2",
+    "next-auth": "^5.0.0-beta.32",
+    "pdf-parse": "^1.1.1",
+    "postgres": "^3.4.9",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "stripe": "^22.5.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.10.2",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "drizzle-kit": "^0.31.10",
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.2"
+  }
 }

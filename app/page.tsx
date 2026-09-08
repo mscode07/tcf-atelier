@@ -120,6 +120,27 @@ export default function HomePage() {
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
   const [accessActive, setAccessActive] = useState(false);
+  const [moduleAccess, setModuleAccess] = useState<Record<string, { active: boolean }>>({});
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [catalog, setCatalog] = useState<{testNumber:number;title:string}[]>([]);
+  const [catalogError, setCatalogError] = useState("");
+  const refreshAccess = async () => {
+    const response = await fetch("/api/access", {cache:"no-store"});
+    if (!response.ok) { setModuleAccess({}); setAccessActive(false); return; }
+    const data = await response.json(); setAccessActive(Boolean(data.active)); setModuleAccess(data.modules || {}); setIsAdmin(Boolean(data.isAdmin));
+  };
+  useEffect(() => {
+    if (!user) return;
+    void refreshAccess();
+    const timer = setInterval(() => void refreshAccess().catch(() => {}), 30000);
+    return () => clearInterval(timer);
+  }, [user]);
+  useEffect(() => {
+    if (route !== "tests") return;
+    let cancelled = false; setCatalog([]); setCatalogError("");
+    fetch(`/api/materials/${moduleName.toLowerCase()}?catalog=1`, {cache:"no-store"}).then(async r => { if (!r.ok) throw new Error("These tests could not be loaded. Check your module access and try again."); return r.json(); }).then(d => { if (!cancelled) setCatalog(d.tests); }).catch(e => { if (!cancelled) setCatalogError(e.message); });
+    return () => { cancelled = true; };
+  }, [route, moduleName]);
   const setToast = (message: string) => {
     const legacyPlan = message.match(/^(7|15|30) days plan/);
     if (legacyPlan) {
@@ -211,6 +232,10 @@ export default function HomePage() {
       .catch(() => undefined);
   }, [route, user]);
 
+  useEffect(() => {
+    if (["writing", "speaking", "tests"].includes(route) && !moduleAccess[moduleName.toLowerCase()]?.active) setRoute("dashboard");
+  }, [moduleAccess, moduleName, route]);
+
   const login = async (email: string) => {
     if (email === "learner@gmail.com") {
       void signIn("google", { callbackUrl: "/" });
@@ -240,7 +265,7 @@ export default function HomePage() {
     setRoute("home");
   };
   const openModule = (nextModule: ModuleName) => {
-    if (!accessActive) {
+    if (!moduleAccess[nextModule.toLowerCase()]?.active) {
       setToast("Choose an active plan to unlock the practice modules.");
       setRoute("home");
       setTimeout(() => document.querySelector("#pricing")?.scrollIntoView(), 0);
@@ -258,11 +283,11 @@ export default function HomePage() {
   const beginReview = (selectedTest: number) => {
     setTest(selectedTest);
     if (moduleName === "Listening") {
-      window.location.href = `/listening-tests/test-${String(selectedTest).padStart(2, "0")}.html?mode=review`;
+      window.location.href = `/practice/listening/${selectedTest}`;
       return;
     }
     if (moduleName === "Reading") {
-      window.location.href = `/reading-tests/${String(selectedTest).padStart(2, "0")}`;
+      window.location.href = `/practice/reading/${selectedTest}`;
       return;
     }
     setQuestionIndex(0);
@@ -716,12 +741,13 @@ export default function HomePage() {
             Practice all four TCF skills from one focused workspace.
           </p>
         </div>
+        {isAdmin && <a className="btn" href="/admin" style={{marginBottom:24,display:"inline-flex"}}>Open admin workspace →</a>}
         <div className="module-grid">
           {[
             ["Listening", "Audio comprehension"],
             ["Reading", "Text comprehension"],
-            ["Writing", "113 guided prompts"],
-            ["Speaking", "52 guided prompts"],
+            ["Writing", "Guided writing prompts"],
+            ["Speaking", "Guided speaking prompts"],
           ].map((item) => (
             <button
               className="module"
@@ -729,7 +755,7 @@ export default function HomePage() {
               onClick={() => openModule(item[0] as ModuleName)}
             >
               <ModuleIcon name={item[0] as ModuleName} />
-              <b>{item[0]}</b>
+              <b>{item[0]} {!moduleAccess[item[0].toLowerCase()]?.active && <span aria-label="Locked" title="Module access required">🔒</span>}</b>
               <small>{item[1]}</small>
             </button>
           ))}
@@ -752,7 +778,7 @@ export default function HomePage() {
               <div className="text-blue-600 font-semibold text-2xl mb-5">{moduleName} review</div>
               <h1 className="text-4xl font-bold">{moduleName} Tests</h1>
               <p className="text-gray-500 mt-2 text-lg font-semibold">
-                40 full tests · all levels · immediate answer feedback
+                {catalog.length} available tests · all levels · immediate answer feedback
               </p>
             </div>
             <button
@@ -775,13 +801,14 @@ export default function HomePage() {
               <i className="legend-progress" /> <p className="text-lg font-semibold text-gray-500">In progress</p>
             </span>
             <span className="text-lg font-medium">
-              {moduleProgress?.completed ?? 0}/40 completed ·{" "}
+              {moduleProgress?.completed ?? 0} completed ·{" "}
               {moduleProgress?.average ?? 0}% average
             </span>
           </div>
+          {catalogError && <p role="alert">{catalogError}</p>}
+          {!catalogError && catalog.length === 0 && <p>No published tests are currently available.</p>}
           <div className="tests-grid">
-            {Array.from({ length: 40 }, (_, index) => {
-              const testNumber = index + 1;
+            {catalog.map(({ testNumber }, index) => {
               const testProgress = moduleProgress?.tests.find(
                 (item) => item.testNumber === testNumber,
               );
@@ -1061,12 +1088,12 @@ function WritingLibrary({
   const [showAnswers, setShowAnswers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetch("/data/writing-questions.json")
+    fetch("/api/materials/writing", {cache:"no-store"})
       .then((response) => {
         if (!response.ok) throw new Error("Writing prompts could not be loaded");
         return response.json();
       })
-      .then((data: { questions: WritingQuestion[] }) => setQuestions(data.questions));
+      .then((data: { questions: WritingQuestion[] }) => setQuestions(data.questions)).catch(() => { window.location.href = "/?access=subscription_required"; });
     try {
       setDrafts(JSON.parse(localStorage.getItem("tcf-writing-drafts") || "{}"));
     } catch {
@@ -1174,7 +1201,8 @@ function WritingLibrary({
 }
 
 type SpeakingQuestion = {
-  id: number;
+  id: string | number;
+  number?: number;
   coverageMode: "quick";
   tache: 2 | 3;
   category: string;
@@ -1201,7 +1229,7 @@ function SpeakingLibrary({
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SpeakingQuestion | null>(null);
-  const [done, setDone] = useState<Set<number>>(new Set());
+  const [done, setDone] = useState<Set<string | number>>(new Set());
   const [showGuide, setShowGuide] = useState(false);
   const [showReference, setShowReference] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -1213,9 +1241,9 @@ function SpeakingLibrary({
   const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    fetch("/data/speaking-questions.json")
-      .then((response) => response.json())
-      .then((data: { questions: SpeakingQuestion[] }) => setQuestions(data.questions));
+    fetch("/api/materials/speaking", {cache:"no-store"})
+      .then((response) => { if (!response.ok) throw new Error("Module access required"); return response.json(); })
+      .then((data: { questions: SpeakingQuestion[] }) => setQuestions(data.questions)).catch(() => { window.location.href = "/?access=subscription_required"; });
     try {
       setDone(new Set(JSON.parse(localStorage.getItem("tcf-speaking-done") || "[]")));
     } catch {
@@ -1236,7 +1264,7 @@ function SpeakingLibrary({
   });
   const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   const resetFilters = () => { setTask("all"); setCategory("all"); setSearch(""); };
-  const toggleDone = (id: number) => {
+  const toggleDone = (id: string | number) => {
     const next = new Set(done);
     next.has(id) ? next.delete(id) : next.add(id);
     setDone(next);
@@ -1283,7 +1311,7 @@ function SpeakingLibrary({
         <main className="speaking-session">
           <button className="writing-back" onClick={() => { if (recording) stopRecording(); setSelected(null); }}>← All speaking prompts</button>
           <div className="speaking-session-meta"><span className={`writing-task task-${selected.tache}`}>Task {selected.tache}</span><span>{formatTime(selected.durationSeconds)}</span></div>
-          <div className="speaking-prompt-number">Prompt {String(selected.id).padStart(2, "0")}</div>
+          <div className="speaking-prompt-number">Prompt {String(selected.number ?? selected.id).padStart(2, "0")}</div>
           <h1>{selected.category}</h1>
           <section className="speaking-prompt"><p>{selected.promptFr}</p></section>
           <section className="speaking-guide-bar">
@@ -1331,7 +1359,7 @@ function SpeakingLibrary({
         <div className="speaking-result-count">{filtered.length} prompt{filtered.length === 1 ? "" : "s"} shown</div>
         <section className="speaking-list">
           {filtered.map((item) => <article className="speaking-card" key={item.id}>
-            <div className="speaking-card-top"><div><span className={`writing-task task-${item.tache}`}>Task {item.tache}</span><span>{item.category}</span><span>Prompt {String(item.id).padStart(2, "0")}</span></div><span>{formatTime(item.durationSeconds)}</span></div>
+            <div className="speaking-card-top"><div><span className={`writing-task task-${item.tache}`}>Task {item.tache}</span><span>{item.category}</span><span>Prompt {String(item.number ?? item.id).padStart(2, "0")}</span></div><span>{formatTime(item.durationSeconds)}</span></div>
             <p>{item.promptFr}</p>
             <div className="speaking-card-bottom"><span className={done.has(item.id) ? "done" : ""}>{done.has(item.id) ? "✓ Completed" : "Not done"}</span><button className="btn secondary" onClick={() => openQuestion(item)}>Start practice →</button></div>
           </article>)}

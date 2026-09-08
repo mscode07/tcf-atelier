@@ -1,0 +1,1 @@
+ALTER TABLE "test_attempts" ADD COLUMN "content_version" integer DEFAULT 1 NOT NULL;
