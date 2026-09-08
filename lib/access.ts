@@ -41,23 +41,25 @@ export async function getAccessByEmail(
         lte(userSubscriptions.expiresAt, now),
       ),
     );
-  const [subscription] = await db
-    .select({ expiresAt: userSubscriptions.expiresAt })
-    .from(userSubscriptions)
-    .where(
-      and(
-        eq(userSubscriptions.userId, user.id),
-        eq(userSubscriptions.status, "active"),
-        lte(userSubscriptions.startsAt, now),
-        gt(userSubscriptions.expiresAt, now),
-      ),
-    )
-    .orderBy(desc(userSubscriptions.expiresAt))
-    .limit(1);
-  const grants = await db
-    .select()
-    .from(moduleAccessGrants)
-    .where(eq(moduleAccessGrants.userId, user.id));
+  const [[subscription], grants] = await Promise.all([
+    db
+      .select({ expiresAt: userSubscriptions.expiresAt })
+      .from(userSubscriptions)
+      .where(
+        and(
+          eq(userSubscriptions.userId, user.id),
+          eq(userSubscriptions.status, "active"),
+          lte(userSubscriptions.startsAt, now),
+          gt(userSubscriptions.expiresAt, now),
+        ),
+      )
+      .orderBy(desc(userSubscriptions.expiresAt))
+      .limit(1),
+    db
+      .select()
+      .from(moduleAccessGrants)
+      .where(eq(moduleAccessGrants.userId, user.id)),
+  ]);
   const modules = evaluateAccess(
     user.status,
     user.role,
