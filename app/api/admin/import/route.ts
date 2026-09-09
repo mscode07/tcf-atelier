@@ -1,3 +1,4 @@
+import { AUDIO_EXTENSIONS, storeAudio } from "@/lib/admin/audio";
 import { NextResponse } from "next/server";
 import { adminError, AdminError, requireAdmin } from "@/lib/admin/auth";
 import { isModule } from "@/lib/admin/types";
@@ -24,7 +25,20 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     let tests;
     try {
-      if (ext === "json")
+      if (ext && AUDIO_EXTENSIONS.includes(ext)) {
+        const audioUrl = await storeAudio(file, module);
+        tests = normalizeImport(
+          [
+            {
+              testNumber: number,
+              title: file.name.replace(/\.[^.]+$/, ""),
+              questions: [{ audioUrl }],
+            },
+          ],
+          module,
+          number,
+        );
+      } else if (ext === "json")
         tests = normalizeImport(
           JSON.parse(buffer.toString("utf8")),
           module,

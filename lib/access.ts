@@ -1,3 +1,4 @@
+import { hasAdminSession } from "@/lib/admin/auth";
 import { and, desc, eq, gt, lte } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { moduleAccessGrants, userSubscriptions, users } from "@/lib/db/schema";
@@ -14,6 +15,14 @@ export async function getAccessByEmail(
   rawEmail: string | null | undefined,
   module?: ModuleKey,
 ): Promise<AccessResult> {
+  if (await hasAdminSession())
+    return {
+      userId: "a5c2fda9-4189-4862-a9fd-38853a946b51",
+      active: true,
+      expiresAt: null,
+      modules: evaluateAccess("active", "admin", null, []),
+      isAdmin: true,
+    };
   const empty = {
     userId: null,
     active: false,

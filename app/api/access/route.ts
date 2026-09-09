@@ -1,3 +1,4 @@
+import { hasAdminSession } from "@/lib/admin/auth";
 import { isModule } from "@/lib/admin/types";
 import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
@@ -12,6 +13,13 @@ export async function GET(request: Request) {
   const requestedModule = new URL(request.url).searchParams.get("module");
   const module = isModule(requestedModule) ? requestedModule : undefined;
   const session = await auth();
+  if (await hasAdminSession()) {
+    const access = await getAccessByEmail(null, module);
+    return NextResponse.json(
+      { ...access, authenticated: true, watermark: "Administrator" },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
   if (!session?.user?.email)
     return NextResponse.json(
       { authenticated: false, active: false },

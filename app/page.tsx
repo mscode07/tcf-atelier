@@ -203,7 +203,15 @@ export default function HomePage() {
           user?: User | null;
         } | null;
         const sessionUser = session?.user;
-        if (!sessionUser?.email) return;
+        if (!sessionUser?.email) {
+          const adminAccess = await fetch("/api/access", { cache: "no-store" });
+          const access = await adminAccess.json();
+          if (access.isAdmin) {
+            setUser({ email: "passcode-admin@tcf.internal.invalid" });
+            setRoute("dashboard");
+          }
+          return;
+        }
         setUser(sessionUser);
         setRoute("dashboard");
 

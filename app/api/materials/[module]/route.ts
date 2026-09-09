@@ -34,6 +34,7 @@ export async function GET(
       module === "writing"
         ? {
             id: t.testNumber === 1 ? q.id : `${t.id}:${q.id}`,
+            audioUrl: q.audioUrl,
             taskType: `tache_${q.task}`,
             prompt: q.prompt,
             correction: q.referenceAnswer,
@@ -47,6 +48,7 @@ export async function GET(
         : module === "speaking"
           ? {
               id: t.testNumber === 1 && /^\d+$/.test(q.id) ? Number(q.id) : `${t.id}:${q.id}`,
+              audioUrl: q.audioUrl,
               number: i + 1,
               coverageMode: "quick",
               tache: q.task,

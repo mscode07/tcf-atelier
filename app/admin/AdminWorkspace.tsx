@@ -1,4 +1,6 @@
 "use client";
+import ChangePasscode from "./ChangePasscode";
+import AudioUpload from "./AudioUpload";
 import {
   ChangeEvent,
   FormEvent,
@@ -681,6 +683,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
             <span className="admin-avatar">
               {name.slice(0, 1).toUpperCase()}
             </span>
+            <ChangePasscode />
             <button
               className="admin-button"
               onClick={() =>
@@ -1133,7 +1136,10 @@ export default function AdminWorkspace({ name }: { name: string }) {
                         <Icon name="imports" size={36} />
                       </span>
                       <h2>Your next collection starts here</h2>
-                      <p>Choose a JSON, Word document, or searchable PDF.</p>
+                      <p>
+                        Choose JSON, a Word document, a searchable PDF, or
+                        audio.
+                      </p>
                       <button
                         className="admin-button primary"
                         disabled={busy || loading}
@@ -1143,12 +1149,12 @@ export default function AdminWorkspace({ name }: { name: string }) {
                         <Icon name="arrow" size={18} />
                       </button>
                       <small>
-                        JSON · DOCX · PDF &nbsp; / &nbsp; Up to 10 MB
+                        JSON · DOCX · PDF · Audio &nbsp; / &nbsp; Up to 10 MB
                       </small>
                       <input
                         ref={fileRef}
                         type="file"
-                        accept=".json,.docx,.pdf"
+                        accept=".json,.docx,.pdf,.mp3,.wav,.ogg,.m4a,.aac,.webm,.flac"
                         hidden
                         onChange={upload}
                       />
@@ -1185,7 +1191,8 @@ export default function AdminWorkspace({ name }: { name: string }) {
                     </ol>
                     <div className="admin-import-note">
                       Scanned PDFs need text recognition first. Embedded images
-                      and audio should be supplied as hosted media URLs.
+                      can use hosted media URLs. Upload audio directly; add the
+                      prompt, choices, and answer before publishing.
                     </div>
                   </aside>
                 </div>
@@ -2118,23 +2125,28 @@ function QuestionEditor({
                   )}
                 </>
               )}
-              {test.module === "listening" && (
-                <label className="admin-field">
+              {
+                <div className="admin-field">
                   Audio URL
                   <input
-                    type="url"
-                    placeholder="https://…"
+                    type="text"
+                    placeholder="https://… or uploaded audio"
                     value={q.audioUrl}
                     onChange={(e) => patch({ audioUrl: e.target.value })}
                   />
                   <small>
-                    A hosted audio file is required for listening questions.
+                    Upload audio or paste a hosted URL for listening questions.
                   </small>
-                  {q.audioUrl.startsWith("https://") && (
+                  <AudioUpload
+                    key={q.id}
+                    module={test.module}
+                    onUploaded={(audioUrl) => patch({ audioUrl })}
+                  />
+                  {q.audioUrl && (
                     <audio controls preload="none" src={q.audioUrl} />
                   )}
-                </label>
-              )}
+                </div>
+              }
               {mcq && (
                 <label className="admin-field">
                   Image URL (optional)
