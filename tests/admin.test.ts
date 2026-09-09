@@ -224,6 +224,19 @@ test("content transactions retain revisions, reject stale edits, and roll back e
     for (const entry of journal.entries)
       await client.exec(await readFile(`drizzle/${entry.tag}.sql`, "utf8"));
     const db = drizzle(client, { schema });
+    const { validSession, sessionHash, checkStoredPasscode } = await import("../lib/admin/session-store");
+    const { hash } = await import("bcryptjs");
+    const sessionDb = db as unknown as ReturnType<typeof import("../lib/db").getDb>;
+    const sessionToken = "test-session-token";
+    await db.insert(schema.adminSessions).values({ tokenHash: sessionHash(sessionToken), expiresAt: future });
+    assert.equal(await validSession(sessionToken, sessionDb, now), true);
+    assert.equal(await validSession("wrong-token", sessionDb, now), false);
+    assert.equal(await validSession(sessionToken, sessionDb, future), false);
+    await db.insert(schema.adminSettings).values({ id: "main", passcodeHash: await hash("9876", 4) });
+    assert.equal(await checkStoredPasscode("9876", sessionDb), true);
+    assert.equal(await checkStoredPasscode("1234", sessionDb), false);
+    await db.delete(schema.adminSessions);
+    assert.equal(await validSession(sessionToken, sessionDb, now), false);
     const [admin] = await db
       .insert(schema.users)
       .values({ email: "admin@test.invalid", role: "admin" })
@@ -330,4 +343,19 @@ test("content transactions retain revisions, reject stale edits, and roll back e
   } finally {
     await client.close();
   }
+});
+
+test("audio validation recognizes supported headers and rejects renamed documents", async () => {
+  const { audioMime } = await import("../lib/admin/audio");
+  assert.equal(audioMime(Buffer.from("ID3test")), "audio/mpeg");
+  assert.equal(audioMime(Buffer.from("RIFF1234WAVE")), "audio/wav");
+  assert.equal(audioMime(Buffer.from("OggSrecording")), "audio/ogg");
+  assert.equal(audioMime(Buffer.from("%PDF-audio.mp3")), null);
+  assert.equal(audioMime(Buffer.from("<script>bad</script>")), null);
+  assert.equal(audioMime(Buffer.alloc(0)), null);
+});
+test("asynchronous incorrect passcodes count toward rate limiting", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "tcf-async-pin-"));
+  for (let i = 0; i < 10; i++) assert.equal(await limitedLogin(async () => false, directory), false);
+  await assert.rejects(limitedLogin(async () => true, directory), /Too many/);
 });

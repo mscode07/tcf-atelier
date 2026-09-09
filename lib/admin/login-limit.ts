@@ -5,7 +5,7 @@ import path from "node:path";
 import { AdminError } from "./errors";
 // Shared across workers on this server, including restarts. No IP headers are trusted.
 export async function limitedLogin(
-  check: () => boolean,
+  check: () => boolean | Promise<boolean>,
   directory?: string,
   now = Date.now(),
 ) {
@@ -39,7 +39,7 @@ export async function limitedLogin(
         "Too many incorrect attempts. Please try again in 15 minutes.",
         429,
       );
-    const valid = check();
+    const valid = await check();
     state.count = valid ? 0 : state.count + 1;
     await writeFile(path.join(root, "attempts.json"), JSON.stringify(state), {
       mode: 0o600,

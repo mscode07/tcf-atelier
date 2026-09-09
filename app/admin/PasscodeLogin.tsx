@@ -1,6 +1,6 @@
 "use client";
 import { FormEvent, useState } from "react";
-export default function PasscodeLogin() {
+export default function PasscodeLogin({ onUnlock }: { onUnlock: () => void }) {
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,7 +16,7 @@ export default function PasscodeLogin() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      window.location.replace("/admin");
+      onUnlock();
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Unable to sign in. Try again.",

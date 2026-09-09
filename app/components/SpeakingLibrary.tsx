@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type SpeakingQuestion = {
+  audioUrl?: string;
   id: string | number;
   number?: number;
   coverageMode: "quick";
@@ -115,7 +116,7 @@ export default function SpeakingLibrary({
           <div className="speaking-session-meta"><span className={`writing-task task-${selected.tache}`}>Task {selected.tache}</span><span>{formatTime(selected.durationSeconds)}</span></div>
           <div className="speaking-prompt-number">Prompt {String(selected.number ?? selected.id).padStart(2, "0")}</div>
           <h1>{selected.category}</h1>
-          <section className="speaking-prompt"><p>{selected.promptFr}</p></section>
+          <section className="speaking-prompt"><p>{selected.promptFr}</p>{selected.audioUrl && <audio controls preload="none" src={selected.audioUrl} />}</section>
           <section className="speaking-guide-bar">
             <div><span>Quick-set framework</span><p>{selected.quickSetSupport?.coachTip || "Organize your response clearly before you begin."}</p></div>
             <button className="btn secondary" onClick={() => setShowGuide(!showGuide)}>{showGuide ? "Hide guide" : "Show guide"}</button>

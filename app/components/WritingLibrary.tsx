@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 type WritingQuestion = {
+  audioUrl?: string;
   id: string;
   taskType: "tache_1" | "tache_2" | "tache_3";
   prompt: string;
@@ -129,6 +130,7 @@ export default function WritingLibrary({
                       <button className="btn secondary writing-model-button" onClick={() => setShowAnswers((current) => { const next = new Set(current); next.has(item.id) ? next.delete(item.id) : next.add(item.id); return next; })}>
                         {showAnswers.has(item.id) ? "Hide model answer" : "Show model answer"}
                       </button>
+                      {item.audioUrl && <audio controls preload="none" src={item.audioUrl} />}
                       {showAnswers.has(item.id) && <div className="writing-model"><span>Model answer</span><p>{item.correction || "Model answer coming soon for this prompt."}</p></div>}
                     </div>
                   )}

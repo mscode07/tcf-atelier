@@ -1,12 +1,13 @@
+import { validSession } from "./session-store";
 import { cookies } from "next/headers";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { ADMIN_COOKIE, verifyAdminSession } from "./passcode";
+import { ADMIN_COOKIE } from "./passcode";
 import { NextResponse } from "next/server";
 import { AdminError } from "./errors";
 export { AdminError } from "./errors";
 export async function hasAdminSession() {
-  return verifyAdminSession((await cookies()).get(ADMIN_COOKIE)?.value);
+  return validSession((await cookies()).get(ADMIN_COOKIE)?.value);
 }
 export function checkAdminOrigin(request: Request) {
   if (request && request.method !== "GET") {

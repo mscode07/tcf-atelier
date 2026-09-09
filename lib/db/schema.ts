@@ -273,3 +273,18 @@ export const adminActivity = pgTable("admin_activity", {
   detail: text("detail").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const adminSettings = pgTable("admin_settings", {
+  id: text("id").primaryKey(),
+  passcodeHash: text("passcode_hash").notNull(),
+});
+export const adminSessions = pgTable("admin_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+export const materialAudio = pgTable("material_audio", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  module: moduleTypeEnum("module").notNull(),
+  mime: text("mime").notNull(),
+  data: text("data").notNull(),
+});

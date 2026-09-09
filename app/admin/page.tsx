@@ -1,13 +1,16 @@
-import { hasAdminSession } from "@/lib/admin/auth";
-import PasscodeLogin from "./PasscodeLogin";
-import AdminWorkspace from "./AdminWorkspace";
-import "./admin.css";
+import { cookies } from "next/headers";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { adminSessions } from "@/lib/db/schema";
+import { ADMIN_COOKIE } from "@/lib/admin/passcode";
+import { sessionHash } from "@/lib/admin/session-store";
+import AdminGate from "./AdminGate";
 export const dynamic = "force-dynamic";
-export const metadata = {
-  title: "Admin workspace · TCF material",
-  robots: { index: false, follow: false },
-};
 export default async function AdminPage() {
-  if (!(await hasAdminSession())) return <PasscodeLogin />;
-  return <AdminWorkspace name="Admin" />;
+  const token = (await cookies()).get(ADMIN_COOKIE)?.value;
+  if (token)
+    await getDb()
+      .delete(adminSessions)
+      .where(eq(adminSessions.tokenHash, sessionHash(token)));
+  return <AdminGate />;
 }

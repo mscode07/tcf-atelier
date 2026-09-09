@@ -5,7 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 export const ADMIN_COOKIE = "tcf-admin-session";
-export const SESSION_SECONDS = 8 * 60 * 60;
+export const SESSION_SECONDS = 5 * 60;
 function configuration() {
   const pin = process.env.ADMIN_PASSCODE || "";
   const secret =

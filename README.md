@@ -136,8 +136,10 @@ module cards when they do not have access.
 
 There is no preview mode. The old `/admin/preview` address redirects to `/admin`
 and requires the same passcode. All admin pages and data APIs require a signed,
-HttpOnly session that expires after eight hours. “Lock panel” signs out. Changing
-the passcode invalidates existing sessions. Ten incorrect attempts cause a
+HttpOnly session backed by revocable database records. Refreshing `/admin` locks
+the panel; five minutes without activity also locks it, with server-side expiry.
+“Lock panel” signs out. “Change passcode” requires the current PIN and confirmation,
+stores a bcrypt hash in the database, and invalidates all existing sessions. Ten incorrect attempts cause a
 15-minute lockout shared across workers on a single server. Multi-server hosting
 must use shared storage for the login limiter. Links leaving the admin workspace
 open in a new tab. Audit entries use an automatically created internal identity.
@@ -165,7 +167,7 @@ questions per test.
 
 Files are parsed locally by the server, never executed or sent to an AI provider.
 Scanned PDFs require OCR before upload. Embedded document media is not extracted;
-provide hosted HTTPS media URLs. Empty documents and network-capture JSON files
+provide hosted HTTPS image URLs. Audio can be uploaded directly (MP3, WAV, OGG, M4A, AAC, WebM, or FLAC; up to 10 MB) in imports or the question editor. Audio imports create drafts requiring prompts and answers before publication. Audio is stored in PostgreSQL and served through a module-access-protected endpoint with byte-range playback. Empty documents and network-capture JSON files
 are rejected without changing existing content. The sample Speaking capture
 contains no question array, and the sample Listening DOCX contains only a heading
 and question count, so those two samples cannot be used as question imports.
