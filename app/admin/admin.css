@@ -291,7 +291,8 @@
   font-weight: 650;
   white-space: nowrap;
 }
-.admin-avatar {
+.admin-avatar,
+.admin-serial-mark {
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -303,6 +304,17 @@
   font-weight: 750;
   font-size: 12px;
   flex-shrink: 0;
+}
+.admin-serial-mark {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.admin-table th.admin-serial-col,
+.admin-table td.admin-serial-col {
+  width: 1%;
+  padding-left: 18px;
+  padding-right: 6px;
+  vertical-align: middle;
 }
 .admin-avatar.large {
   width: 58px;
@@ -1143,12 +1155,23 @@
   border-block: 1px solid var(--a-line);
 }
 .admin-import-test-list button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
   padding: 10px 14px;
   background: #fafbfe;
   border: 1px solid #e0e6f1;
   border-radius: 8px;
   min-width: 185px;
   text-align: left;
+}
+.admin-import-test-list .admin-serial-mark {
+  grid-row: 1 / span 2;
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
 }
 .admin-import-test-list button.active {
   background: #f0f3ff;
@@ -1157,12 +1180,14 @@
 .admin-import-test-list strong {
   font-size: 11px;
   display: block;
+  grid-column: 2;
 }
 .admin-import-test-list span {
   font-size: 9px;
   color: #7e8ba4;
   display: block;
   margin-top: 3px;
+  grid-column: 2;
 }
 .admin-editor {
   padding: 23px 25px;

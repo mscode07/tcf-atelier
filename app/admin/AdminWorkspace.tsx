@@ -165,6 +165,13 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
     </svg>
   );
 }
+function SerialMark({ n }: { n: number }) {
+  return (
+    <span className="admin-serial-mark" aria-label={`Serial number ${n}`}>
+      {n}
+    </span>
+  );
+}
 let modalCount = 0;
 let priorBodyOverflow = "";
 function Modal({
@@ -602,11 +609,9 @@ export default function AdminWorkspace({ name }: { name: string }) {
   const activityList = (full = false) => (
     <div className="admin-activity-list">
       {summary.activity.length ? (
-        summary.activity.slice(0, full ? 50 : 5).map((a) => (
+        summary.activity.slice(0, full ? 50 : 5).map((a, i) => (
           <div className="admin-activity-row" key={a.id}>
-            <span className="admin-activity-dot">
-              <Icon name="check" size={16} />
-            </span>
+            <SerialMark n={i + 1} />
             <div>
               <strong>{a.action}</strong>
               <p>{a.detail}</p>
@@ -1054,6 +1059,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
                             }
                           />
                         </th>
+                        <th className="admin-serial-col">S.NO</th>
                         <th>TEST COLLECTION</th>
                         <th>QUESTIONS</th>
                         <th>STATUS</th>
@@ -1065,7 +1071,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
                     </thead>
                     <tbody>
                       {!loading &&
-                        filtered.map((t) => (
+                        filtered.map((t, i) => (
                           <tr key={t.id}>
                             <td>
                               <input
@@ -1074,6 +1080,9 @@ export default function AdminWorkspace({ name }: { name: string }) {
                                 checked={selected.has(t.id)}
                                 onChange={() => toggle(t.id)}
                               />
+                            </td>
+                            <td className="admin-serial-col">
+                              <SerialMark n={i + 1} />
                             </td>
                             <td>
                               <div className="admin-test-title">
@@ -1324,6 +1333,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
                             setQuestionSelection(new Set());
                           }}
                         >
+                          <SerialMark n={i + 1} />
                           <strong>{t.title}</strong>
                           <span>
                             Test {t.testNumber} · {t.questions.length} questions{" "}
@@ -1431,6 +1441,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
                   <table className="admin-table">
                     <thead>
                       <tr>
+                        <th className="admin-serial-col">S.NO</th>
                         <th>STUDENT</th>
                         <th>JOINED</th>
                         <th>LAST SIGN-IN</th>
@@ -1439,13 +1450,13 @@ export default function AdminWorkspace({ name }: { name: string }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {students.map((s) => (
+                      {students.map((s, i) => (
                         <tr key={s.id}>
+                          <td className="admin-serial-col">
+                            <SerialMark n={offset + i + 1} />
+                          </td>
                           <td>
                             <div className="admin-test-title">
-                              <span className="admin-avatar">
-                                {(s.name || s.email).slice(0, 1).toUpperCase()}
-                              </span>
                               <div>
                                 <strong>
                                   {s.name || s.email.split("@")[0]}
@@ -1571,11 +1582,12 @@ export default function AdminWorkspace({ name }: { name: string }) {
                 </div>
                 <div className="admin-table-scroll">
                   <table className="admin-table">
-                    <thead><tr><th>STUDENT</th><th>PLAN</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr></thead>
+                    <thead><tr><th className="admin-serial-col">S.NO</th><th>STUDENT</th><th>PLAN</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr></thead>
                     <tbody>
-                      {transactions.map((transaction) => (
+                      {transactions.map((transaction, i) => (
                         <tr key={transaction.id}>
-                          <td><div className="admin-test-title"><span className="admin-avatar">{(transaction.name || transaction.email).slice(0, 1).toUpperCase()}</span><div><strong>{transaction.name || transaction.email.split("@")[0]}</strong><small>{transaction.email}</small></div></div></td>
+                          <td className="admin-serial-col"><SerialMark n={offset + i + 1} /></td>
+                          <td><div className="admin-test-title"><div><strong>{transaction.name || transaction.email.split("@")[0]}</strong><small>{transaction.email}</small></div></div></td>
                           <td>{transaction.planName || "—"}</td>
                           <td>{money(transaction.amountMinor, transaction.currency)}</td>
                           <td><span className={`admin-badge ${transaction.status === "paid" ? "published" : "archived"}`}>{label(transaction.status)}</span></td>
@@ -1752,8 +1764,9 @@ export default function AdminWorkspace({ name }: { name: string }) {
           </p>
           <div className="admin-grant-list">
             {grants.length ? (
-              grants.map((g) => (
+              grants.map((g, i) => (
                 <div key={g.id}>
+                  <SerialMark n={i + 1} />
                   <Icon name={g.module} />
                   <div>
                     <strong>
