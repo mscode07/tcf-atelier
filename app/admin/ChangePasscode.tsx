@@ -1,4 +1,5 @@
 "use client";
+import headerStyles from "./AdminHeaderActions.module.css";
 import { useState, useEffect, useRef, FormEvent } from "react";
 export default function ChangePasscode() {
   const [open, setOpen] = useState(false),
@@ -31,13 +32,28 @@ export default function ChangePasscode() {
   return (
     <>
       <button
-        className="admin-button"
+        className={`${headerStyles.securityButton} ${headerStyles.passcodeButton}`}
+        aria-label="Change admin passcode"
         onClick={() => {
           setError("");
           setOpen(true);
         }}
       >
-        Change passcode
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="8" cy="9" r="5" />
+          <path d="m12 12 8 8m-3-3 3-3m-6 0 3-3" />
+        </svg>
+        <span>Change passcode</span>
       </button>
       {open && (
         <dialog

@@ -235,6 +235,16 @@ test("content transactions retain revisions, reject stale edits, and roll back e
     await db.insert(schema.adminSettings).values({ id: "main", passcodeHash: await hash("9876", 4) });
     assert.equal(await checkStoredPasscode("9876", sessionDb), true);
     assert.equal(await checkStoredPasscode("1234", sessionDb), false);
+    const { storeAdminSession } = await import("../lib/admin/session-store");
+    const { adminSummary } = await import("../lib/admin/summary");
+    const emptySummary = await adminSummary(sessionDb);
+    assert.deepEqual(emptySummary, { activity: [], students: [], content: [] });
+    await storeAdminSession("first-login", sessionDb);
+    await storeAdminSession("second-login", sessionDb);
+    assert.equal(await validSession("first-login", sessionDb), true);
+    assert.equal(await validSession("second-login", sessionDb), true);
+    assert.equal((await db.select().from(schema.users)).length, 1, "repeat logins reuse the admin actor");
+    await assert.rejects(storeAdminSession("second-login", sessionDb), (error: unknown) => (error as { cause?: { code?: string } }).cause?.code === "23505");
     await db.delete(schema.adminSessions);
     assert.equal(await validSession(sessionToken, sessionDb, now), false);
     const [admin] = await db
@@ -340,6 +350,13 @@ test("content transactions retain revisions, reject stale edits, and roll back e
       "archived",
     );
     assert.equal((await db.select().from(schema.adminActivity)).length, 4);
+    await db.insert(schema.users).values({ email: "student@summary.test", role: "student" });
+    const summary = await adminSummary(sessionDb);
+    assert.equal(summary.activity.length, 4);
+    assert.equal(summary.activity[0].actor, "admin@test.invalid");
+    assert.ok(!Number.isNaN(Date.parse(summary.activity[0].createdAt)));
+    assert.deepEqual(summary.students, [{ status: "active", count: 1 }]);
+    assert.deepEqual(summary.content, [{ module: "reading", status: "archived", count: 1 }]);
   } finally {
     await client.close();
   }

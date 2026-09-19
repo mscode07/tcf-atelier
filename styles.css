@@ -144,3 +144,36 @@ input, select, textarea { min-width: 0; max-width: 100%; }
   .btn:hover, .module:hover, .feature:hover, .speaking-card:hover { transform: none; }
 }
 :where(button, a, summary, input, select, textarea):focus-visible { outline: 3px solid #7eabf4; outline-offset: 3px; }
+
+/* Keep study tools usable between phone, tablet, and desktop breakpoints. */
+.shell, .dashboard, .writing-page, .speaking-page, .calculator-page,
+.reading-main, .reading-content, .exam-card { min-width: 0; }
+.writing-controls > *, .speaking-controls > *, .calculator-info > *,
+.reading-topbar > *, .exam-actions > * { min-width: 0; }
+.writing-card-body audio, .speaking-prompt audio { display: block; width: 100%; margin-block: 16px; }
+.speaking-recorder-status, .speaking-session-meta, .writing-card-meta,
+.reading-question-head, .reading-bottom-actions { flex-wrap: wrap; gap: 12px; }
+@media (max-width: 1000px) {
+  .writing-controls { grid-template-columns: minmax(0, 1fr); position: static; }
+  .speaking-filter-row { grid-template-columns: minmax(0, 1fr); }
+  .speaking-filter-row button { min-height: 44px; }
+  .reading-topbar > div { flex-wrap: wrap; }
+}
+@media (max-width: 600px) {
+  .btn, .writing-tabs button, .speaking-record-button { min-height: 44px; }
+  .writing-page, .speaking-page, .speaking-session, .calculator-page { max-width: 100%; }
+  .writing-card-meta { line-height: 1.6; }
+  .exam-actions > .btn { flex: 1 1 130px; }
+  .reading-topbar > div { gap: 8px; }
+  .reading-topbar > div > button { min-height: 44px; padding-inline: 10px; white-space: normal; }
+  .preview-footer { flex-wrap: wrap; }
+  .auth-card, .modal { width: 100%; min-width: 0; }
+  .calculator-nav { flex-wrap: wrap; }
+  .footer-brand { min-width: 0; }
+}
+@media (max-width: 360px) {
+  .module-grid { grid-template-columns: minmax(0, 1fr); }
+  .tests-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .brand-copy strong { font-size: 16px; }
+  .stats-strip strong { font-size: 28px; }
+}

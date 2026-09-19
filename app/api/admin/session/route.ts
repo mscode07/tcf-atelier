@@ -2,11 +2,12 @@ import { cookies } from "next/headers";
 import { and, eq, gt } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { getDb } from "@/lib/db";
-import { adminSessions, adminSettings, users } from "@/lib/db/schema";
+import { adminSessions, adminSettings } from "@/lib/db/schema";
 import {
   checkStoredPasscode,
   sessionHash,
   sessionExpiry,
+  storeAdminSession,
 } from "@/lib/admin/session-store";
 import { NextResponse } from "next/server";
 import {
@@ -49,19 +50,7 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
     const token = createAdminSession();
-    await getDb()
-      .insert(users)
-      .values({
-        id: "a5c2fda9-4189-4862-a9fd-38853a946b51",
-        name: "Administrator",
-        email: "passcode-admin@tcf.internal.invalid",
-        role: "admin",
-        primaryProvider: "passcode",
-      })
-      .onConflictDoNothing();
-    await getDb()
-      .insert(adminSessions)
-      .values({ tokenHash: sessionHash(token), expiresAt: sessionExpiry() });
+    await storeAdminSession(token);
     response.cookies.set(ADMIN_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

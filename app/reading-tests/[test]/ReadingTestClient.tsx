@@ -148,9 +148,7 @@ export default function ReadingTestClient({
         Math.max(0, Math.min(questions.length - 1, progress.current ?? 0)),
       );
       setSubmitted(Boolean(progress.submitted));
-    } catch {
-      /* Ignore invalid local progress. */
-    }
+    } catch {}
     setHydrated(true);
   }, [test]);
   useEffect(() => {

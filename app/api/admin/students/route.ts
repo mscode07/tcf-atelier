@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import {
   adminActivity,
   moduleAccessGrants,
+  payments,
   testAttempts,
   users,
   userSubscriptions,
@@ -70,6 +71,15 @@ export async function GET(request: Request) {
     }
     const search = (params.get("q") || "").slice(0, 100).replace(/[%_\\]/g, "");
     const offset = Math.max(0, Number(params.get("offset")) || 0);
+    const payer = params.get("payer") || "all";
+    const conditions = [eq(users.role, "student")];
+    const paidStudent = sql`exists (select 1 from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid')`;
+    if (payer === "paying") conditions.push(paidStudent);
+    if (payer === "unpaid") conditions.push(sql`not (${paidStudent})`);
+    if (search) {
+      const term = `%${search}%`;
+      conditions.push(or(ilike(users.email, term), ilike(users.name, term))!);
+    }
     const rows = await db
       .select({
         id: users.id,
@@ -82,17 +92,7 @@ export async function GET(request: Request) {
         phone: users.phone,
       })
       .from(users)
-      .where(
-        and(
-          eq(users.role, "student"),
-          search
-            ? or(
-                ilike(users.email, `%${search}%`),
-                ilike(users.name, `%${search}%`),
-              )
-            : undefined,
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(desc(users.createdAt))
       .limit(51)
       .offset(offset);
