@@ -4,9 +4,17 @@ import { FormEvent, useEffect, useState } from "react";
 import { signIn, signOut } from "next-auth/react";
 import dynamic from "next/dynamic";
 
-const loadingLibrary = () => <main className="section" role="status">Loading practice library…</main>;
-const WritingLibrary = dynamic(() => import("./components/WritingLibrary"), { loading: loadingLibrary });
-const SpeakingLibrary = dynamic(() => import("./components/SpeakingLibrary"), { loading: loadingLibrary });
+const loadingLibrary = () => (
+  <main className="section" role="status">
+    Loading practice library…
+  </main>
+);
+const WritingLibrary = dynamic(() => import("./components/WritingLibrary"), {
+  loading: loadingLibrary,
+});
+const SpeakingLibrary = dynamic(() => import("./components/SpeakingLibrary"), {
+  loading: loadingLibrary,
+});
 
 type Route =
   | "home"
@@ -125,26 +133,59 @@ export default function HomePage() {
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
   const [accessActive, setAccessActive] = useState(false);
-  const [moduleAccess, setModuleAccess] = useState<Record<string, { active: boolean }>>({});
+  const [moduleAccess, setModuleAccess] = useState<
+    Record<string, { active: boolean }>
+  >({});
   const [isAdmin, setIsAdmin] = useState(false);
-  const [catalog, setCatalog] = useState<{testNumber:number;title:string}[]>([]);
+  const [catalog, setCatalog] = useState<
+    { testNumber: number; title: string }[]
+  >([]);
   const [catalogError, setCatalogError] = useState("");
   const refreshAccess = async () => {
-    const response = await fetch("/api/access", {cache:"no-store"});
-    if (!response.ok) { setModuleAccess({}); setAccessActive(false); return; }
-    const data = await response.json(); setAccessActive(Boolean(data.active)); setModuleAccess(data.modules || {}); setIsAdmin(Boolean(data.isAdmin));
+    const response = await fetch("/api/access", { cache: "no-store" });
+    if (!response.ok) {
+      setModuleAccess({});
+      setAccessActive(false);
+      return;
+    }
+    const data = await response.json();
+    setAccessActive(Boolean(data.active));
+    setModuleAccess(data.modules || {});
+    setIsAdmin(Boolean(data.isAdmin));
   };
   useEffect(() => {
     if (!user) return;
     void refreshAccess().catch(() => {});
-    const timer = setInterval(() => void refreshAccess().catch(() => {}), 30000);
+    const timer = setInterval(
+      () => void refreshAccess().catch(() => {}),
+      30000,
+    );
     return () => clearInterval(timer);
   }, [user]);
   useEffect(() => {
     if (route !== "tests") return;
-    let cancelled = false; setCatalog([]); setCatalogError("");
-    fetch(`/api/materials/${moduleName.toLowerCase()}?catalog=1`, {cache:"no-store"}).then(async r => { if (!r.ok) throw new Error("These tests could not be loaded. Check your module access and try again."); return r.json(); }).then(d => { if (!cancelled) setCatalog(d.tests); }).catch(e => { if (!cancelled) setCatalogError(e.message); });
-    return () => { cancelled = true; };
+    let cancelled = false;
+    setCatalog([]);
+    setCatalogError("");
+    fetch(`/api/materials/${moduleName.toLowerCase()}?catalog=1`, {
+      cache: "no-store",
+    })
+      .then(async (r) => {
+        if (!r.ok)
+          throw new Error(
+            "These tests could not be loaded. Check your module access and try again.",
+          );
+        return r.json();
+      })
+      .then((d) => {
+        if (!cancelled) setCatalog(d.tests);
+      })
+      .catch((e) => {
+        if (!cancelled) setCatalogError(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [route, moduleName]);
   const setToast = (message: string) => {
     const legacyPlan = message.match(/^(7|15|30) days plan/);
@@ -196,7 +237,9 @@ export default function HomePage() {
           cache: "no-store",
         });
         if (!sessionResponse.ok) {
-          throw new Error("Could not check your sign-in status. Please try again.");
+          throw new Error(
+            "Could not check your sign-in status. Please try again.",
+          );
         }
         // Auth.js returns null for signed-out visitors, including expired sessions.
         const session = (await sessionResponse.json()) as {
@@ -239,7 +282,11 @@ export default function HomePage() {
   }, [route, user]);
 
   useEffect(() => {
-    if (["writing", "speaking", "tests"].includes(route) && !moduleAccess[moduleName.toLowerCase()]?.active) setRoute("dashboard");
+    if (
+      ["writing", "speaking", "tests"].includes(route) &&
+      !moduleAccess[moduleName.toLowerCase()]?.active
+    )
+      setRoute("dashboard");
   }, [moduleAccess, moduleName, route]);
 
   const login = async (email: string) => {
@@ -349,16 +396,35 @@ export default function HomePage() {
         className="brand"
         onClick={() => setRoute(user ? "dashboard" : "home")}
       >
-        <span className="brand-mark" aria-hidden="true">TM</span>
-        <span className="brand-copy">TCF <b>Material</b><small>French exam preparation</small></span>
+        <span className="brand-mark" aria-hidden="true">
+          TM
+        </span>
+        <span className="brand-copy">
+          TCF <b>Material</b>
+          <small>French exam preparation</small>
+        </span>
       </button>
       <div className="nav-actions">
         {!minimal && (
           <>
-            <button className="nav-link" onClick={() => { setRoute("home"); setTimeout(() => document.querySelector("#features")?.scrollIntoView(), 0); }}>
+            <button
+              className="nav-link"
+              onClick={() => {
+                setRoute("home");
+                setTimeout(
+                  () => document.querySelector("#features")?.scrollIntoView(),
+                  0,
+                );
+              }}
+            >
               Practice
             </button>
-            <button className="nav-link" onClick={() => { window.location.href = "/clb-calculator"; }}>
+            <button
+              className="nav-link"
+              onClick={() => {
+                window.location.href = "/clb-calculator";
+              }}
+            >
               CLB Calculator
             </button>
             <button
@@ -377,7 +443,10 @@ export default function HomePage() {
         )}
         {user ? (
           <>
-            <button className="nav-link account-link" onClick={() => setRoute("dashboard")}>
+            <button
+              className="nav-link account-link"
+              onClick={() => setRoute("dashboard")}
+            >
               Dashboard
             </button>
             <button className="nav-link account-link" onClick={logout}>
@@ -386,20 +455,55 @@ export default function HomePage() {
           </>
         ) : (
           <>
-            <button className="nav-signin" onClick={() => setRoute("auth")}>Sign in</button>
-            <button className="btn nav-cta" onClick={() => setRoute("auth")}>Start practising</button>
+            <button className="nav-signin" onClick={() => setRoute("auth")}>
+              Sign in
+            </button>
+            <button className="btn nav-cta" onClick={() => setRoute("auth")}>
+              Start practising
+            </button>
           </>
         )}
       </div>
-      <details className="mobile-nav" onClick={(event) => {
-        if ((event.target as HTMLElement).closest("button")) event.currentTarget.open = false;
-      }}>
+      <details
+        className="mobile-nav"
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("button"))
+            event.currentTarget.open = false;
+        }}
+      >
         <summary aria-label="Open navigation menu">Menu ☰</summary>
         <div className="mobile-nav-panel">
-          <button onClick={() => { setRoute("home"); setTimeout(() => document.querySelector("#features")?.scrollIntoView(), 0); }}>Practice</button>
+          <button
+            onClick={() => {
+              setRoute("home");
+              setTimeout(
+                () => document.querySelector("#features")?.scrollIntoView(),
+                0,
+              );
+            }}
+          >
+            Practice
+          </button>
           <a href="/clb-calculator">CLB Calculator</a>
-          <button onClick={() => { setRoute("home"); setTimeout(() => document.querySelector("#pricing")?.scrollIntoView(), 0); }}>Pricing</button>
-          {user ? <><button onClick={() => setRoute("dashboard")}>Dashboard</button><button onClick={logout}>Sign out</button></> : <button onClick={() => setRoute("auth")}>Sign in</button>}
+          <button
+            onClick={() => {
+              setRoute("home");
+              setTimeout(
+                () => document.querySelector("#pricing")?.scrollIntoView(),
+                0,
+              );
+            }}
+          >
+            Pricing
+          </button>
+          {user ? (
+            <>
+              <button onClick={() => setRoute("dashboard")}>Dashboard</button>
+              <button onClick={logout}>Sign out</button>
+            </>
+          ) : (
+            <button onClick={() => setRoute("auth")}>Sign in</button>
+          )}
         </div>
       </details>
     </nav>
@@ -411,13 +515,18 @@ export default function HomePage() {
       <main>
         <section className="hero">
           <div className="hero-copy">
-            <div className="hero-badge"><span>✦</span> The focused route to your TCF score</div>
+            <div className="hero-badge">
+              <span>✦</span> The focused route to your TCF score
+            </div>
             <h1>
-              French practice,<br />
+              French practice,
+              <br />
               <em>without the noise.</em>
             </h1>
             <p className="lede">
-              Forty full-length TCF practice tests, clear explanations, and a calmer way to build exam confidence — from your first A1 question to C1.
+              Forty full-length TCF practice tests, clear explanations, and a
+              calmer way to build exam confidence — from your first A1 question
+              to C1.
             </p>
             <div className="hero-actions">
               <button
@@ -436,41 +545,75 @@ export default function HomePage() {
               </button>
             </div>
             <div className="mini-proof">
-              <span><i>✓</i> No subscription</span>
-              <span><i>✓</i> All four skills</span>
-              <span><i>✓</i> Learn at your pace</span>
+              <span>
+                <i>✓</i> No subscription
+              </span>
+              <span>
+                <i>✓</i> All four skills
+              </span>
+              <span>
+                <i>✓</i> Learn at your pace
+              </span>
             </div>
           </div>
-          <div className="hero-visual" aria-label="TCF practice dashboard preview">
-            <div className="maple-stamp" aria-hidden="true">✦</div>
-            <div className="floating-card floating-score"><span>Target score</span><strong>CLB 7+</strong><small>On track ↑</small></div>
+          <div
+            className="hero-visual"
+            aria-label="TCF practice dashboard preview"
+          >
+            <div className="maple-stamp" aria-hidden="true">
+              ✦
+            </div>
+            <div className="floating-card floating-score">
+              <span>Target score</span>
+              <strong>CLB 7+</strong>
+              <small>On track ↑</small>
+            </div>
             <div className="preview">
-            <div className="preview-top">
-              <span className="preview-brand">TCF Reading</span>
-              <span className="preview-progress">Question 03 / 39</span>
-            </div>
-            <div className="question-card">
-              <div className="question-meta"><span className="level">A1</span><span>Reading comprehension</span></div>
-              <div className="passage">
-                Le train pour Lyon partira exceptionnellement voie 8.
+              <div className="preview-top">
+                <span className="preview-brand">TCF Reading</span>
+                <span className="preview-progress">Question 03 / 39</span>
               </div>
-              <p className="preview-question">Que doivent faire les voyageurs ?</p>
-              <div className="choice">A. Acheter un billet</div>
-              <div className="choice active"><span>B. Changer de quai</span><b>✓</b></div>
-              <div className="choice">C. Appeler un taxi</div>
-            </div>
-            <div className="preview-footer"><span>Great work — that&apos;s correct!</span><button>Next question →</button></div>
+              <div className="question-card">
+                <div className="question-meta">
+                  <span className="level">A1</span>
+                  <span>Reading comprehension</span>
+                </div>
+                <div className="passage">
+                  Le train pour Lyon partira exceptionnellement voie 8.
+                </div>
+                <p className="preview-question">
+                  Que doivent faire les voyageurs ?
+                </p>
+                <div className="choice">A. Acheter un billet</div>
+                <div className="choice active">
+                  <span>B. Changer de quai</span>
+                  <b>✓</b>
+                </div>
+                <div className="choice">C. Appeler un taxi</div>
+              </div>
+              <div className="preview-footer">
+                <span>Great work — that&apos;s correct!</span>
+                <button>Next question →</button>
+              </div>
             </div>
           </div>
         </section>
         <div className="stats-strip">
-          <div><strong>40</strong><span>Complete practice tests</span>
+          <div>
+            <strong>40</strong>
+            <span>Complete practice tests</span>
           </div>
-          <div><strong>4</strong><span>Skills in one platform</span>
+          <div>
+            <strong>4</strong>
+            <span>Skills in one platform</span>
           </div>
-          <div><strong>A1–C1</strong><span>Progressive difficulty</span>
+          <div>
+            <strong>A1–C1</strong>
+            <span>Progressive difficulty</span>
           </div>
-          <div><strong>699</strong><span>TCF score mapping</span>
+          <div>
+            <strong>699</strong>
+            <span>TCF score mapping</span>
           </div>
         </div>
         <section className="section" id="features">
@@ -480,7 +623,8 @@ export default function HomePage() {
               <h2>Master every part of the TCF.</h2>
             </div>
             <p className="text-lg max-w-xl">
-              One calm, structured workspace for building the exact French skills your exam preparation calls for.
+              One calm, structured workspace for building the exact French
+              skills your exam preparation calls for.
             </p>
           </div>
           <div className="feature-grid">
@@ -524,20 +668,77 @@ export default function HomePage() {
           </div>
         </section>
         <section className="level-journey" aria-label="TCF level journey">
-          <div className="level-intro"><div className="section-kicker">Progress you can see</div><h2>Grow from foundation to fluency.</h2><p>Practice moves with you, from everyday language to confident, complex communication.</p></div>
+          <div className="level-intro">
+            <div className="section-kicker">Progress you can see</div>
+            <h2>Grow from foundation to fluency.</h2>
+            <p>
+              Practice moves with you, from everyday language to confident,
+              complex communication.
+            </p>
+          </div>
           <div className="level-track">
-            {[['A1','Discover','First essentials'],['A2','Build','Everyday French'],['B1','Connect','Independent use'],['B2','Express','Confident fluency'],['C1','Master','Advanced control']].map((level, index) => <div className="level-stop" key={level[0]}><span>{level[0]}</span><strong>{level[1]}</strong><small>{level[2]}</small>{index < 4 && <i />}</div>)}
+            {[
+              ["A1", "Discover", "First essentials"],
+              ["A2", "Build", "Everyday French"],
+              ["B1", "Connect", "Independent use"],
+              ["B2", "Express", "Confident fluency"],
+              ["C1", "Master", "Advanced control"],
+            ].map((level, index) => (
+              <div className="level-stop" key={level[0]}>
+                <span>{level[0]}</span>
+                <strong>{level[1]}</strong>
+                <small>{level[2]}</small>
+                {index < 4 && <i />}
+              </div>
+            ))}
           </div>
         </section>
         <section className="study-path">
           <div className="study-path-copy">
             <div className="section-kicker">A smarter study rhythm</div>
             <h2>A clear path from first practice to test day.</h2>
-            <p>Stop guessing what to study next. Short, focused sessions make progress visible and keep your preparation moving.</p>
-            <button className="btn secondary" onClick={() => setRoute(user ? "dashboard" : "auth")}>Build my study plan →</button>
+            <p>
+              Stop guessing what to study next. Short, focused sessions make
+              progress visible and keep your preparation moving.
+            </p>
+            <button
+              className="btn secondary"
+              onClick={() => setRoute(user ? "dashboard" : "auth")}
+            >
+              Build my study plan →
+            </button>
           </div>
           <div className="path-steps">
-            {[['01','Choose your skill','Focus on listening, reading, writing, or speaking.'],['02','Practise realistically','Work through exam-style questions at your own pace.'],['03','Learn from feedback','See corrections and understand where to improve.'],['04','Track your readiness','Follow your scores and prepare with confidence.']].map((step) => <div className="path-step" key={step[0]}><span>{step[0]}</span><div><h3>{step[1]}</h3><p>{step[2]}</p></div></div>)}
+            {[
+              [
+                "01",
+                "Choose your skill",
+                "Focus on listening, reading, writing, or speaking.",
+              ],
+              [
+                "02",
+                "Practise realistically",
+                "Work through exam-style questions at your own pace.",
+              ],
+              [
+                "03",
+                "Learn from feedback",
+                "See corrections and understand where to improve.",
+              ],
+              [
+                "04",
+                "Track your readiness",
+                "Follow your scores and prepare with confidence.",
+              ],
+            ].map((step) => (
+              <div className="path-step" key={step[0]}>
+                <span>{step[0]}</span>
+                <div>
+                  <h3>{step[1]}</h3>
+                  <p>{step[2]}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
         <section className="section pricing-section" id="pricing">
@@ -629,12 +830,64 @@ export default function HomePage() {
         </section>
         <section className="testimonial-section">
           <div className="testimonial-mark">“</div>
-          <blockquote>TCF Material makes preparation feel manageable. I can see what I need to improve, practise it, and go into each session with a plan.</blockquote>
-          <div className="testimonial-person"><span>AM</span><div><strong>Amélie M.</strong><small>TCF learner</small></div></div>
+          <blockquote>
+            TCF Material makes preparation feel manageable. I can see what I
+            need to improve, practise it, and go into each session with a plan.
+          </blockquote>
+          <div className="testimonial-person">
+            <span>AM</span>
+            <div>
+              <strong>Amélie M.</strong>
+              <small>TCF learner</small>
+            </div>
+          </div>
         </section>
-        <section className="final-cta"><div><span>READY WHEN YOU ARE</span><h2>Make French your next milestone.</h2></div><button className="btn" onClick={() => setRoute(user ? "dashboard" : "auth")}>Start practising today →</button></section>
+        <section className="final-cta">
+          <div>
+            <span>READY WHEN YOU ARE</span>
+            <h2>Make French your next milestone.</h2>
+          </div>
+          <button
+            className="btn"
+            onClick={() => setRoute(user ? "dashboard" : "auth")}
+          >
+            Start practising today →
+          </button>
+        </section>
       </main>
-      <footer className="site-footer"><div className="footer-brand"><span className="brand-mark">TM</span><div><strong>TCF Material</strong><p>Focused French preparation for confident exam day performance.</p></div></div><div className="footer-links"><button onClick={() => document.querySelector("#features")?.scrollIntoView()}>Practice</button><button onClick={() => { window.location.href = "/clb-calculator"; }}>CLB Calculator</button><button onClick={() => document.querySelector("#pricing")?.scrollIntoView()}>Pricing</button></div><small>© 2026 TCF Material. Made for focused French learners.</small></footer>
+      <footer className="site-footer">
+        <div className="footer-brand">
+          <span className="brand-mark">TM</span>
+          <div>
+            <strong>TCF Material</strong>
+            <p>
+              Focused French preparation for confident exam day performance.
+            </p>
+          </div>
+        </div>
+        <div className="footer-links">
+          <button
+            onClick={() =>
+              document.querySelector("#features")?.scrollIntoView()
+            }
+          >
+            Practice
+          </button>
+          <button
+            onClick={() => {
+              window.location.href = "/clb-calculator";
+            }}
+          >
+            CLB Calculator
+          </button>
+          <button
+            onClick={() => document.querySelector("#pricing")?.scrollIntoView()}
+          >
+            Pricing
+          </button>
+        </div>
+        <small>© 2026 TCF Material. Made for focused French learners.</small>
+      </footer>
     </div>
   );
 
@@ -649,7 +902,9 @@ export default function HomePage() {
             login(new FormData(event.currentTarget).get("email") as string);
           }}
         >
-          <div className="text-blue-600 text-2xl font-bold text-center mb-3">Welcome to your study room</div>
+          <div className="text-blue-600 text-2xl font-bold text-center mb-3">
+            Welcome to your study room
+          </div>
           <p className="text-center mb-3 font-semibold">
             Sign in or create an account — it only takes a moment.
           </p>
@@ -747,7 +1002,15 @@ export default function HomePage() {
             Practice all four TCF skills from one focused workspace.
           </p>
         </div>
-        {isAdmin && <a className="btn" href="/admin" style={{marginBottom:24,display:"inline-flex"}}>Open admin workspace →</a>}
+        {isAdmin && (
+          <a
+            className="btn"
+            href="/admin"
+            style={{ marginBottom: 24, display: "inline-flex" }}
+          >
+            Open admin workspace →
+          </a>
+        )}
         <div className="module-grid">
           {[
             ["Listening", "Audio comprehension"],
@@ -761,7 +1024,14 @@ export default function HomePage() {
               onClick={() => openModule(item[0] as ModuleName)}
             >
               <ModuleIcon name={item[0] as ModuleName} />
-              <b>{item[0]} {!moduleAccess[item[0].toLowerCase()]?.active && <span aria-label="Locked" title="Module access required">🔒</span>}</b>
+              <b>
+                {item[0]}{" "}
+                {!moduleAccess[item[0].toLowerCase()]?.active && (
+                  <span aria-label="Locked" title="Module access required">
+                    🔒
+                  </span>
+                )}
+              </b>
               <small>{item[1]}</small>
             </button>
           ))}
@@ -781,10 +1051,13 @@ export default function HomePage() {
         <main className="dashboard">
           <div className="tests-head">
             <div>
-              <div className="text-blue-600 font-semibold text-2xl mb-5">{moduleName} review</div>
+              <div className="text-blue-600 font-semibold text-2xl mb-5">
+                {moduleName} review
+              </div>
               <h1 className="text-4xl font-bold">{moduleName} Tests</h1>
               <p className="text-gray-500 mt-2 text-lg font-semibold">
-                {catalog.length} available tests · all levels · immediate answer feedback
+                {catalog.length} available tests · all levels · immediate answer
+                feedback
               </p>
             </div>
             <button
@@ -801,10 +1074,12 @@ export default function HomePage() {
           />
           <div className="progress-legend">
             <span>
-              <i className="legend-completed" /> <p className="text-lg font-semibold text-gray-500">Completed</p>
+              <i className="legend-completed" />{" "}
+              <p className="text-lg font-semibold text-gray-500">Completed</p>
             </span>
             <span>
-              <i className="legend-progress" /> <p className="text-lg font-semibold text-gray-500">In progress</p>
+              <i className="legend-progress" />{" "}
+              <p className="text-lg font-semibold text-gray-500">In progress</p>
             </span>
             <span className="text-lg font-medium">
               {moduleProgress?.completed ?? 0} completed ·{" "}
@@ -812,7 +1087,9 @@ export default function HomePage() {
             </span>
           </div>
           {catalogError && <p role="alert">{catalogError}</p>}
-          {!catalogError && catalog.length === 0 && <p>No published tests are currently available.</p>}
+          {!catalogError && catalog.length === 0 && (
+            <p>No published tests are currently available.</p>
+          )}
           <div className="tests-grid">
             {catalog.map(({ testNumber }, index) => {
               const testProgress = moduleProgress?.tests.find(
@@ -1047,7 +1324,9 @@ export default function HomePage() {
     exam: <Exam />,
     results: <Results />,
     writing: <WritingLibrary onBack={() => setRoute("dashboard")} nav={nav} />,
-    speaking: <SpeakingLibrary onBack={() => setRoute("dashboard")} nav={nav} />,
+    speaking: (
+      <SpeakingLibrary onBack={() => setRoute("dashboard")} nav={nav} />
+    ),
     comingSoon: <ComingSoon />,
   };
   return (
@@ -1107,7 +1386,9 @@ function ScoreChart({
           ))}
         </svg>
       ) : (
-        <p className="chart-empty">Complete a test to start your score trend.</p>
+        <p className="chart-empty">
+          Complete a test to start your score trend.
+        </p>
       )}
     </div>
   );
@@ -1135,10 +1416,12 @@ function ModuleOverview({
       <ScoreChart compact scores={data?.recentScores} label={name} />
       <div className="overview-meta">
         <span>
-          <strong>{data?.attempted ?? 0}</strong> <p className="text-md font-medium text-gray-500">attempted</p>
+          <strong>{data?.attempted ?? 0}</strong>{" "}
+          <p className="text-md font-medium text-gray-500">attempted</p>
         </span>
         <span>
-          <strong>{data?.completed ?? 0}</strong> <p className="text-md">completed</p>
+          <strong>{data?.completed ?? 0}</strong>{" "}
+          <p className="text-md">completed</p>
         </span>
         <span>
           <strong>{data?.best ?? 0}%</strong> <p className="text-md">best</p>
@@ -1160,10 +1443,30 @@ function ModuleIcon({ name }: { name: ModuleName }) {
   return (
     <span className="module-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" {...common}>
-        {name === "Listening" && <><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><path d="M4 14a2 2 0 0 1 2-2h1v7H6a2 2 0 0 1-2-2zM20 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z"/></>}
-        {name === "Reading" && <><path d="M3.5 5.5A3.5 3.5 0 0 1 7 4h4v16H7a3.5 3.5 0 0 0-3.5 1z"/><path d="M20.5 5.5A3.5 3.5 0 0 0 17 4h-4v16h4a3.5 3.5 0 0 1 3.5 1z"/></>}
-        {name === "Writing" && <><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16z"/><path d="m14.5 6.7 3 3M4 20h6"/></>}
-        {name === "Speaking" && <><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></>}
+        {name === "Listening" && (
+          <>
+            <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
+            <path d="M4 14a2 2 0 0 1 2-2h1v7H6a2 2 0 0 1-2-2zM20 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
+          </>
+        )}
+        {name === "Reading" && (
+          <>
+            <path d="M3.5 5.5A3.5 3.5 0 0 1 7 4h4v16H7a3.5 3.5 0 0 0-3.5 1z" />
+            <path d="M20.5 5.5A3.5 3.5 0 0 0 17 4h-4v16h4a3.5 3.5 0 0 1 3.5 1z" />
+          </>
+        )}
+        {name === "Writing" && (
+          <>
+            <path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16z" />
+            <path d="m14.5 6.7 3 3M4 20h6" />
+          </>
+        )}
+        {name === "Speaking" && (
+          <>
+            <rect x="9" y="3" width="6" height="12" rx="3" />
+            <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6" />
+          </>
+        )}
       </svg>
     </span>
   );

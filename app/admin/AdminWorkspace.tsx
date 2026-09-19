@@ -1,4 +1,5 @@
 "use client";
+import headerStyles from "./AdminHeaderActions.module.css";
 import ChangePasscode from "./ChangePasscode";
 import AudioUpload from "./AudioUpload";
 import {
@@ -21,7 +22,7 @@ import {
 } from "@/lib/admin/types";
 import { questionIssues } from "@/lib/admin/import";
 
-type Section = "overview" | "students" | "content" | "imports" | "activity";
+type Section = "overview" | "students" | "payments" | "content" | "imports" | "activity";
 type Activity = {
   id: string;
   action: string;
@@ -53,6 +54,11 @@ const dateTime = (s: string | null) =>
         minute: "2-digit",
       })
     : "Lifetime";
+const money = (amountMinor: number, currency: string) =>
+  new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(amountMinor / 100);
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
     overview: (
@@ -83,6 +89,12 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
       <>
         <circle cx="12" cy="12" r="9" />
         <path d="M12 7v5l3 2" />
+      </>
+    ),
+    payments: (
+      <>
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <path d="M4 10h16M8 15h3" />
       </>
     ),
     listening: (
@@ -258,12 +270,30 @@ export default function AdminWorkspace({ name }: { name: string }) {
   });
   const [tests, setTests] = useState<ContentRecord[]>([]);
   const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [transactions, setTransactions] = useState<{
+    id: string;
+    amountMinor: number;
+    currency: string;
+    status: string;
+    provider: string;
+    paidAt: string | null;
+    createdAt: string;
+    name: string | null;
+    email: string;
+    planName: string | null;
+  }[]>([]);
+  const [paymentTotals, setPaymentTotals] = useState<
+    { currency: string; amountMinor: number; count: number }[]
+  >([]);
+  const [payingStudentCount, setPayingStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [studentPayer, setStudentPayer] = useState("all");
+  const [paymentStatus, setPaymentStatus] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editor, setEditor] = useState<MaterialTest | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
@@ -301,6 +331,8 @@ export default function AdminWorkspace({ name }: { name: string }) {
     setMobile(false);
     setSearch("");
     setStatus("all");
+    setStudentPayer("all");
+    setPaymentStatus("all");
     setSelected(new Set());
     setError("");
     setOffset(0);
@@ -340,10 +372,21 @@ export default function AdminWorkspace({ name }: { name: string }) {
       }
       if (section === "students") {
         const d = await api(
-          `/api/admin/students?q=${encodeURIComponent(search)}&offset=${offset}`,
+          `/api/admin/students?q=${encodeURIComponent(search)}&payer=${studentPayer}&offset=${offset}`,
         );
         if (!gone) {
           setStudents(d.students);
+          setHasMore(d.hasMore);
+        }
+      }
+      if (section === "payments") {
+        const d = await api(
+          `/api/admin/payments?q=${encodeURIComponent(search)}&status=${paymentStatus}&offset=${offset}`,
+        );
+        if (!gone) {
+          setTransactions(d.transactions);
+          setPaymentTotals(d.totals);
+          setPayingStudentCount(d.payingStudents);
           setHasMore(d.hasMore);
         }
       }
@@ -357,13 +400,13 @@ export default function AdminWorkspace({ name }: { name: string }) {
           .finally(() => {
             if (!gone) setLoading(false);
           }),
-      section === "students" ? 200 : 0,
+      section === "students" || section === "payments" ? 200 : 0,
     );
     return () => {
       gone = true;
       clearTimeout(timer);
     };
-  }, [section, module, search, offset]);
+  }, [section, module, search, offset, studentPayer, paymentStatus]);
   useEffect(() => {
     const verify = async () => {
       try {
@@ -616,6 +659,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
             [
               ["overview", "Overview"],
               ["students", "Students & access"],
+              ["payments", "Payments"],
               ["content", "Content library"],
               ["imports", "Import materials"],
               ["activity", "Activity history"],
@@ -668,6 +712,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
                 {
                   overview: "Overview",
                   students: "Students & access",
+                  payments: "Payments",
                   content: "Content library",
                   imports: "Import materials",
                   activity: "Activity history",
@@ -683,24 +728,28 @@ export default function AdminWorkspace({ name }: { name: string }) {
             <span className="admin-avatar">
               {name.slice(0, 1).toUpperCase()}
             </span>
-            <ChangePasscode />
-            <button
-              className="admin-button"
-              onClick={() =>
-                void run(async () => {
-                  const response = await fetch("/api/admin/session", {
-                    method: "DELETE",
-                  });
-                  if (!response.ok)
-                    throw new Error(
-                      "Could not lock the panel. Please try again.",
-                    );
-                  window.location.replace("/admin");
-                })
-              }
-            >
-              Lock panel
-            </button>
+            <div className={headerStyles.securityActions}>
+              <ChangePasscode />
+              <button
+                className={`${headerStyles.securityButton} ${headerStyles.lockButton}`}
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    const response = await fetch("/api/admin/session", {
+                      method: "DELETE",
+                    });
+                    if (!response.ok)
+                      throw new Error(
+                        "Could not lock the panel. Please try again.",
+                      );
+                    window.location.replace("/admin");
+                  })
+                }
+              >
+                <Icon name="lock" size={17} />
+                <span>Lock panel</span>
+              </button>
+            </div>
           </div>
         </header>
         <main className="admin-body">
@@ -1361,6 +1410,21 @@ export default function AdminWorkspace({ name }: { name: string }) {
                       }}
                     />
                   </label>
+                  <label className="admin-filter">
+                    <span>Payment</span>
+                    <select
+                      aria-label="Filter students by payment"
+                      value={studentPayer}
+                      onChange={(e) => {
+                        setStudentPayer(e.target.value);
+                        setOffset(0);
+                      }}
+                    >
+                      <option value="all">All students</option>
+                      <option value="paying">Paying students</option>
+                      <option value="unpaid">Unpaid students</option>
+                    </select>
+                  </label>
                   <span className="admin-muted">Newest students first</span>
                 </div>
                 <div className="admin-table-scroll">
@@ -1452,6 +1516,77 @@ export default function AdminWorkspace({ name }: { name: string }) {
                     </button>
                   </div>
                 </div>
+              </section>
+            </>
+          )}
+          {section === "payments" && (
+            <>
+              <div className="admin-page-heading">
+                <div>
+                  <p className="admin-eyebrow">REVENUE & TRANSACTIONS</p>
+                  <h1>Payments</h1>
+                  <p>See every transaction and the students who have paid.</p>
+                </div>
+              </div>
+              <div className="admin-payment-stats">
+                <div className="admin-stat">
+                  <span>Paying students</span>
+                  <strong>{payingStudentCount}</strong>
+                  <small>At least one successful payment</small>
+                </div>
+                {paymentTotals.map((total) => (
+                  <div className="admin-stat" key={total.currency}>
+                    <span>Payments received</span>
+                    <strong>{money(total.amountMinor, total.currency)}</strong>
+                    <small>{total.count} successful transaction{total.count === 1 ? "" : "s"}</small>
+                  </div>
+                ))}
+              </div>
+              <section className="admin-panel">
+                <div className="admin-library-toolbar">
+                  <label className="admin-search">
+                    <Icon name="search" />
+                    <input
+                      aria-label="Search transactions"
+                      placeholder="Search by student name or email…"
+                      value={search}
+                      onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
+                    />
+                  </label>
+                  <label className="admin-filter">
+                    <span>Status</span>
+                    <select
+                      aria-label="Filter transactions by status"
+                      value={paymentStatus}
+                      onChange={(e) => { setPaymentStatus(e.target.value); setOffset(0); }}
+                    >
+                      <option value="all">All transactions</option>
+                      <option value="paid">Paid</option>
+                      <option value="created">Pending</option>
+                      <option value="failed">Failed</option>
+                      <option value="refunded">Refunded</option>
+                    </select>
+                  </label>
+                  <span className="admin-muted">Newest payments first</span>
+                </div>
+                <div className="admin-table-scroll">
+                  <table className="admin-table">
+                    <thead><tr><th>STUDENT</th><th>PLAN</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr></thead>
+                    <tbody>
+                      {transactions.map((transaction) => (
+                        <tr key={transaction.id}>
+                          <td><div className="admin-test-title"><span className="admin-avatar">{(transaction.name || transaction.email).slice(0, 1).toUpperCase()}</span><div><strong>{transaction.name || transaction.email.split("@")[0]}</strong><small>{transaction.email}</small></div></div></td>
+                          <td>{transaction.planName || "—"}</td>
+                          <td>{money(transaction.amountMinor, transaction.currency)}</td>
+                          <td><span className={`admin-badge ${transaction.status === "paid" ? "published" : "archived"}`}>{label(transaction.status)}</span></td>
+                          <td>{dateTime(transaction.paidAt || transaction.createdAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {(loading || !transactions.length) && <div className="admin-empty"><Icon name="payments" size={34} /><h3>{loading ? "Loading payments…" : "No transactions found"}</h3><p>{search || paymentStatus !== "all" ? "Try changing the search or status filter." : "Payments will appear here when students start checkout."}</p></div>}
+                <div className="admin-table-footer"><span>{transactions.length ? `${offset + 1}–${offset + transactions.length}` : "0"} transactions shown</span><div className="admin-actions"><button className="admin-button" disabled={!offset || loading} onClick={() => setOffset(Math.max(0, offset - 50))}>Previous</button><button className="admin-button" disabled={!hasMore || loading} onClick={() => setOffset(offset + 50)}>Next</button></div></div>
               </section>
             </>
           )}
