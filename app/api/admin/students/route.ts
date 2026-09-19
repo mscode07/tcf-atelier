@@ -16,6 +16,7 @@ import {
   requireAdmin,
 } from "@/lib/admin/auth";
 import { isModule } from "@/lib/admin/types";
+import { STRIPE_LIVE_CHECKOUT_PREFIX } from "@/lib/stripe";
 const uuid = (v: unknown): v is string =>
   typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(v);
 export async function GET(request: Request) {
@@ -73,7 +74,7 @@ export async function GET(request: Request) {
     const offset = Math.max(0, Number(params.get("offset")) || 0);
     const payer = params.get("payer") || "all";
     const conditions = [eq(users.role, "student")];
-    const paidStudent = sql`exists (select 1 from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid')`;
+    const paidStudent = sql`exists (select 1 from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid' and ${payments.currency} ilike 'usd' and ${payments.providerOrderId} like ${STRIPE_LIVE_CHECKOUT_PREFIX + "%"})`;
     if (payer === "paying") conditions.push(paidStudent);
     if (payer === "unpaid") conditions.push(sql`not (${paidStudent})`);
     if (search) {

@@ -9,10 +9,12 @@ export function getStripe() {
   return stripeClient;
 }
 
+export const STRIPE_CATALOG_CURRENCY = "usd";
+export const STRIPE_LIVE_CHECKOUT_PREFIX = "cs_live_";
 export const stripePlans = {
-  "7-days": { priceEnv: "STRIPE_PRICE_7_DAYS", durationDays: 7, label: "7 days", amountMinor: 1000, currency: "usd" },
-  "30-days": { priceEnv: "STRIPE_PRICE_30_DAYS", durationDays: 30, label: "30 days", amountMinor: 2500, currency: "usd" },
-  "60-days": { priceEnv: "STRIPE_PRICE_60_DAYS", durationDays: 60, label: "60 days", amountMinor: 4000, currency: "usd" },
+  "7-days": { priceEnv: "STRIPE_PRICE_7_DAYS", durationDays: 7, label: "7 days", amountMinor: 1000, currency: STRIPE_CATALOG_CURRENCY },
+  "30-days": { priceEnv: "STRIPE_PRICE_30_DAYS", durationDays: 30, label: "30 days", amountMinor: 2500, currency: STRIPE_CATALOG_CURRENCY },
+  "60-days": { priceEnv: "STRIPE_PRICE_60_DAYS", durationDays: 60, label: "60 days", amountMinor: 4000, currency: STRIPE_CATALOG_CURRENCY },
 } as const;
 
 export type StripePlanCode = keyof typeof stripePlans;
