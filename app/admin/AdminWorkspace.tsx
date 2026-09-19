@@ -54,11 +54,21 @@ const dateTime = (s: string | null) =>
         minute: "2-digit",
       })
     : "Lifetime";
+const CATALOG_CURRENCY = "USD";
 const money = (amountMinor: number, currency: string) =>
   new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: currency.toUpperCase(),
   }).format(amountMinor / 100);
+const paymentTotalFor = (
+  totals: { currency: string; amountMinor: number; count: number }[],
+  currency: string,
+) =>
+  totals.find((total) => total.currency.toUpperCase() === currency) ?? {
+    currency,
+    amountMinor: 0,
+    count: 0,
+  };
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
     overview: (
@@ -579,6 +589,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
     URL.revokeObjectURL(url);
   };
   const totalStudents = summary.students.reduce((s, r) => s + r.count, 0);
+  const catalogPayments = paymentTotalFor(paymentTotals, CATALOG_CURRENCY);
   const published = summary.content
     .filter((r) => r.status === "published")
     .reduce((s, r) => s + r.count, 0);
@@ -1545,13 +1556,16 @@ export default function AdminWorkspace({ name }: { name: string }) {
                   <strong>{payingStudentCount}</strong>
                   <small>At least one successful payment</small>
                 </div>
-                {paymentTotals.map((total) => (
-                  <div className="admin-stat" key={total.currency}>
-                    <span>Payments received</span>
-                    <strong>{money(total.amountMinor, total.currency)}</strong>
-                    <small>{total.count} successful transaction{total.count === 1 ? "" : "s"}</small>
-                  </div>
-                ))}
+                <div className="admin-stat">
+                  <span>Payments received</span>
+                  <strong>
+                    {money(catalogPayments.amountMinor, CATALOG_CURRENCY)}
+                  </strong>
+                  <small>
+                    {catalogPayments.count} successful payment
+                    {catalogPayments.count === 1 ? "" : "s"}
+                  </small>
+                </div>
               </div>
               <section className="admin-panel">
                 <div className="admin-library-toolbar">
