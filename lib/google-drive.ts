@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { adminSettings } from "@/lib/db/schema";
 
 export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+export const DRIVE_OAUTH_STATE_COOKIE = "tcf-drive-oauth-state";
 
 export function driveRedirectUri() {
   const origin =
