@@ -11,6 +11,8 @@ export const paymentStatusEnum = pgEnum("payment_status", ["created", "paid", "f
 export const testModeEnum = pgEnum("test_mode", ["exam", "review"]);
 export const attemptStatusEnum = pgEnum("attempt_status", ["in_progress", "submitted", "evaluated", "abandoned"]);
 export const questionTypeEnum = pgEnum("question_type", ["multiple_choice", "short_text", "essay", "audio_recording"]);
+export const feedbackCategoryEnum = pgEnum("feedback_category", ["bug", "content", "payment", "other"]);
+export const feedbackStatusEnum = pgEnum("feedback_status", ["open", "resolved"]);
 
 export const users = pgTable("app_users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -247,6 +249,8 @@ export const materialContent = pgTable("material_content", {
   status: text("status").notNull().default("draft"),
   questions: jsonb("questions").$type<import("../admin/types").MaterialQuestion[]>().notNull().default([]),
   version: integer("version").notNull().default(1),
+  driveFileId: text("drive_file_id"),
+  driveUrl: text("drive_url"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, t => [uniqueIndex("material_content_module_number_unique").on(t.module, t.testNumber)]);
 
@@ -280,12 +284,40 @@ export const adminActivity = pgTable("admin_activity", {
 
 export const adminSettings = pgTable("admin_settings", {
   id: text("id").primaryKey(),
-  passcodeHash: text("passcode_hash").notNull(),
+  passcodeHash: text("passcode_hash"),
+  securityQuestion1: text("security_question_1"),
+  securityAnswer1Hash: text("security_answer_1_hash"),
+  securityQuestion2: text("security_question_2"),
+  securityAnswer2Hash: text("security_answer_2_hash"),
+  driveRefreshToken: text("drive_refresh_token"),
+  driveAccountEmail: text("drive_account_email"),
+  driveBackupFolderId: text("drive_backup_folder_id"),
 });
 export const adminSessions = pgTable("admin_sessions", {
   tokenHash: text("token_hash").primaryKey(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
+export const driveFiles = pgTable("drive_files", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  module: moduleTypeEnum("module"),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  driveFileId: text("drive_file_id").notNull().unique(),
+  driveUrl: text("drive_url").notNull(),
+  uploadedBy: uuid("uploaded_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const studentFeedback = pgTable("student_feedback", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  category: feedbackCategoryEnum("category").notNull(),
+  message: text("message").notNull(),
+  module: moduleTypeEnum("module"),
+  status: feedbackStatusEnum("status").notNull().default("open"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index("student_feedback_status_index").on(table.status)]);
 export const materialAudio = pgTable("material_audio", {
   id: uuid("id").defaultRandom().primaryKey(),
   module: moduleTypeEnum("module").notNull(),

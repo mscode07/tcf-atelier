@@ -899,6 +899,48 @@
 .admin-pricing-panel .admin-price-field input {
   width: 110px;
 }
+.admin-panel-pad {
+  padding: 20px 22px;
+}
+.admin-file-upload-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.admin-file-upload-row .admin-field {
+  flex: 1 1 200px;
+  margin-bottom: 0;
+}
+.admin-file-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-drive-connect-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.admin-drive-connect-row strong {
+  font-size: 14px;
+}
+.admin-drive-connect-row p {
+  margin: 4px 0 0;
+  color: var(--a-muted);
+  font-size: 12px;
+}
+.admin-file-name-cell small {
+  color: var(--a-muted);
+  font-size: 10px;
+}
+.admin-feedback-message {
+  max-width: 360px;
+  white-space: normal;
+  line-height: 1.5;
+}
 .admin-test-title {
   display: flex;
   align-items: center;
@@ -1619,6 +1661,10 @@
 }
 .admin-entry-card .admin-button {
   margin: 5px 8px 0 0;
+}
+.admin-entry-card .admin-entry-back {
+  display: flex;
+  margin-top: 18px;
 }
 .admin-mobile-menu {
   display: none;

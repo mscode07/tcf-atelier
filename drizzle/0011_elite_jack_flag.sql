@@ -1,0 +1,1 @@
+ALTER TABLE "drive_files" ADD COLUMN "module" "module_type";

@@ -172,6 +172,37 @@ export default function HomePage() {
   const [livePricing, setLivePricing] = useState<
     Record<string, { priceMinor: number; currency: string }>
   >({});
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState("bug");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackError, setFeedbackError] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const submitFeedback = async () => {
+    setFeedbackBusy(true);
+    setFeedbackError("");
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: feedbackCategory,
+          message: feedbackMessage,
+          module: moduleName.toLowerCase(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setFeedbackSent(true);
+      setFeedbackMessage("");
+    } catch (e) {
+      setFeedbackError(
+        e instanceof Error ? e.message : "Could not send your feedback.",
+      );
+    } finally {
+      setFeedbackBusy(false);
+    }
+  };
   useEffect(() => {
     let gone = false;
     fetch("/api/pricing", { cache: "no-store" })
@@ -490,6 +521,16 @@ export default function HomePage() {
               onClick={() => setRoute("dashboard")}
             >
               Dashboard
+            </button>
+            <button
+              className="nav-link account-link"
+              onClick={() => {
+                setFeedbackSent(false);
+                setFeedbackError("");
+                setFeedbackOpen(true);
+              }}
+            >
+              Feedback
             </button>
             <button className="nav-link account-link" onClick={logout}>
               Sign out
@@ -926,6 +967,9 @@ export default function HomePage() {
             onClick={() => document.querySelector("#pricing")?.scrollIntoView()}
           >
             Pricing
+          </button>
+          <button onClick={() => (window.location.href = "/privacy")}>
+            Privacy Policy
           </button>
         </div>
         <small>© 2026 TCF Material. Made for focused French learners.</small>
@@ -1491,6 +1535,81 @@ export default function HomePage() {
       >
         {toast}
       </div>
+      {feedbackOpen && (
+        <div
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setFeedbackOpen(false);
+          }}
+        >
+          <div className="modal feedback-modal" role="dialog" aria-modal="true">
+            {feedbackSent ? (
+              <>
+                <h2>Thanks for letting us know.</h2>
+                <p className="feedback-note">
+                  We've received your report and will look into it.
+                </p>
+                <button className="btn" onClick={() => setFeedbackOpen(false)}>
+                  Close
+                </button>
+              </>
+            ) : (
+              <>
+                <h2>Report a problem</h2>
+                <p className="feedback-note">
+                  Tell us what's going wrong — a bug, missing content, a
+                  payment issue, or anything else.
+                </p>
+                <div className="field">
+                  <label>What kind of problem is it?</label>
+                  <select
+                    value={feedbackCategory}
+                    onChange={(e) => setFeedbackCategory(e.target.value)}
+                  >
+                    <option value="bug">Something's broken</option>
+                    <option value="content">A test or question issue</option>
+                    <option value="payment">Payment or access issue</option>
+                    <option value="other">Something else</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>What happened?</label>
+                  <textarea
+                    className="feedback-textarea"
+                    maxLength={2000}
+                    rows={5}
+                    placeholder="Describe the problem you ran into…"
+                    value={feedbackMessage}
+                    onChange={(e) => setFeedbackMessage(e.target.value)}
+                  />
+                </div>
+                {feedbackError && (
+                  <p className="feedback-error" role="alert">
+                    {feedbackError}
+                  </p>
+                )}
+                <div className="feedback-actions">
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={() => setFeedbackOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn"
+                    type="button"
+                    disabled={feedbackBusy || feedbackMessage.trim().length < 5}
+                    onClick={() => void submitFeedback()}
+                  >
+                    {feedbackBusy ? "Sending…" : "Send feedback"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

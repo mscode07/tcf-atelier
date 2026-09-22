@@ -395,3 +395,18 @@ button, a, .test, .q-dot, .reading-jump button {
 @media(max-width:400px){.auth-name-fields{grid-template-columns:1fr}.auth-card h1{font-size:30px}}
 .auth-card .google{background:var(--panel);color:var(--ink);box-shadow:none}
 .auth-card .full-button{width:100%}
+.legal-page{width:min(760px,calc(100% - 40px));margin:auto;padding:70px 0 100px}
+.legal-header{padding-bottom:36px;border-bottom:1px solid var(--line);margin-bottom:36px}
+.legal-header h1{margin:12px 0 8px;font-size:clamp(38px,5vw,56px)}
+.legal-updated{color:var(--muted);font-size:13px}
+.legal-section{margin-bottom:34px}
+.legal-section h2{font-size:22px;margin:0 0 12px}
+.legal-section p{margin:0 0 12px;color:var(--muted);line-height:1.7;font-size:15px}
+.legal-section a{color:var(--blue)}
+@media(max-width:600px){.legal-page{padding:44px 0 70px}}
+.feedback-modal { display: grid; gap: 16px; }
+.feedback-modal h2 { margin: 0; font-size: 26px; }
+.feedback-note { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.feedback-textarea { width: 100%; resize: vertical; }
+.feedback-error { margin: 0; padding: 10px 14px; border-radius: 10px; background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); font-size: 13px; }
+.feedback-actions { display: flex; justify-content: flex-end; gap: 10px; }

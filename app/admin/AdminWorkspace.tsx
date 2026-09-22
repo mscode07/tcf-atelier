@@ -1,6 +1,7 @@
 "use client";
 import headerStyles from "./AdminHeaderActions.module.css";
 import ChangePassword from "./ChangePassword";
+import SecurityQuestions from "./SecurityQuestions";
 import AudioUpload from "./AudioUpload";
 import {
   ChangeEvent,
@@ -22,7 +23,7 @@ import {
 } from "@/lib/admin/types";
 import { questionIssues } from "@/lib/admin/import";
 
-type Section = "overview" | "students" | "payments" | "content" | "imports" | "activity" | "pricing";
+type Section = "overview" | "students" | "payments" | "content" | "imports" | "activity" | "pricing" | "files" | "feedback";
 type Activity = {
   id: string;
   action: string;
@@ -152,6 +153,16 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
       <>
         <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.176-6.176a2.426 2.426 0 0 0 0-3.42z" />
         <circle cx="7.5" cy="7.5" r="1.5" />
+      </>
+    ),
+    files: (
+      <>
+        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      </>
+    ),
+    feedback: (
+      <>
+        <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </>
     ),
   };
@@ -339,6 +350,40 @@ export default function AdminWorkspace({ name }: { name: string }) {
     }[]
   >([]);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<
+    {
+      id: string;
+      name: string;
+      description: string | null;
+      module: ModuleKey | null;
+      mimeType: string;
+      sizeBytes: number;
+      driveUrl: string;
+      createdAt: string;
+    }[]
+  >([]);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadDescription, setUploadDescription] = useState("");
+  const [uploadModule, setUploadModule] = useState("");
+  const uploadFileRef = useRef<HTMLInputElement>(null);
+  const [driveConnected, setDriveConnected] = useState(false);
+  const [driveAccountEmail, setDriveAccountEmail] = useState<string | null>(
+    null,
+  );
+  const [feedback, setFeedback] = useState<
+    {
+      id: string;
+      category: string;
+      message: string;
+      module: ModuleKey | null;
+      status: string;
+      createdAt: string;
+      studentName: string | null;
+      studentEmail: string;
+    }[]
+  >([]);
+  const [feedbackTotals, setFeedbackTotals] = useState({ open: 0, resolved: 0 });
   const [paymentStatus, setPaymentStatus] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editor, setEditor] = useState<MaterialTest | null>(null);
@@ -406,6 +451,61 @@ export default function AdminWorkspace({ name }: { name: string }) {
   const refreshPricing = async () => {
     setPricingPlans((await api("/api/admin/pricing")).plans);
   };
+  const refreshFiles = async () => {
+    setFiles((await api("/api/admin/files")).files);
+  };
+  const submitFileUpload = () =>
+    run(async () => {
+      if (!uploadFile) return;
+      const form = new FormData();
+      form.set("file", uploadFile);
+      form.set("name", uploadName);
+      form.set("description", uploadDescription);
+      form.set("module", uploadModule);
+      const response = await fetch("/api/admin/files", {
+        method: "POST",
+        body: form,
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Upload failed. Please try again.");
+      await refreshFiles();
+      setUploadFile(null);
+      setUploadName("");
+      setUploadModule("");
+      setUploadDescription("");
+      if (uploadFileRef.current) uploadFileRef.current.value = "";
+      setNotice(`${data.file.name} uploaded to Drive.`);
+    });
+  const deleteDriveFile = (file: (typeof files)[number]) => {
+    setConfirm({
+      title: `Delete ${file.name}?`,
+      detail:
+        "This removes the file from Drive and the students' list. This cannot be undone.",
+      run: async () => {
+        await fetch(`/api/admin/files/${file.id}`, { method: "DELETE" }).then(
+          async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok)
+              throw new Error(data.error || "Could not delete the file.");
+          },
+        );
+        await refreshFiles();
+        setNotice(`${file.name} deleted.`);
+      },
+    });
+  };
+  const refreshFeedback = async () => {
+    const d = await api("/api/admin/feedback");
+    setFeedback(d.feedback);
+    setFeedbackTotals(d.totals);
+  };
+  const toggleFeedbackStatus = (item: (typeof feedback)[number]) =>
+    run(async () => {
+      const next = item.status === "open" ? "resolved" : "open";
+      await api("/api/admin/feedback", { id: item.id, status: next });
+      await refreshFeedback();
+    });
   const submitPrice = (plan: (typeof pricingPlans)[number]) => {
     const dollars = Number(priceDrafts[plan.code]);
     if (!Number.isFinite(dollars) || dollars <= 0) {
@@ -441,6 +541,21 @@ export default function AdminWorkspace({ name }: { name: string }) {
       if (section === "pricing") {
         const p = await api("/api/admin/pricing");
         if (!gone) setPricingPlans(p.plans);
+      }
+      if (section === "files") {
+        const f = await api("/api/admin/files");
+        if (!gone) {
+          setFiles(f.files);
+          setDriveConnected(f.drive.connected);
+          setDriveAccountEmail(f.drive.accountEmail);
+        }
+      }
+      if (section === "feedback") {
+        const d = await api("/api/admin/feedback");
+        if (!gone) {
+          setFeedback(d.feedback);
+          setFeedbackTotals(d.totals);
+        }
       }
       if (section === "content" || section === "imports") {
         const d = await api(`/api/admin/content?module=${module}`);
@@ -526,6 +641,15 @@ export default function AdminWorkspace({ name }: { name: string }) {
     const timer = setTimeout(() => setNotice(""), 5000);
     return () => clearTimeout(timer);
   }, [notice]);
+  useEffect(() => {
+    const driveNotice = new URL(window.location.href).searchParams.get(
+      "driveNotice",
+    );
+    if (!driveNotice) return;
+    setNotice(driveNotice);
+    setSection("files");
+    window.history.replaceState({}, "", "/admin");
+  }, []);
   const filtered = tests.filter(
     (t) =>
       (status === "all" || t.status === status) &&
@@ -757,6 +881,8 @@ export default function AdminWorkspace({ name }: { name: string }) {
               ["imports", "Import materials"],
               ["activity", "Activity history"],
               ["pricing", "Pricing"],
+              ["files", "Files"],
+              ["feedback", "Feedback"],
             ] as [Section, string][]
           ).map(([key, title]) => (
             <button
@@ -811,6 +937,8 @@ export default function AdminWorkspace({ name }: { name: string }) {
                   imports: "Import materials",
                   activity: "Activity history",
                   pricing: "Pricing",
+                  files: "Files",
+                  feedback: "Feedback",
                 }[section]
               }
             </strong>
@@ -825,6 +953,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
             </span>
             <div className={headerStyles.securityActions}>
               <ChangePassword />
+              <SecurityQuestions />
               <button
                 className={`${headerStyles.securityButton} ${headerStyles.lockButton}`}
                 disabled={busy}
@@ -1971,6 +2100,278 @@ export default function AdminWorkspace({ name }: { name: string }) {
                   <div className="admin-empty">
                     <Icon name="pricing" size={30} />
                     <h3>Loading plan prices…</h3>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+          {section === "files" && (
+            <>
+              <div className="admin-page-heading">
+                <div>
+                  <p className="admin-eyebrow">SHARED WITH STUDENTS</p>
+                  <h1>Files</h1>
+                  <p>
+                    Upload PDFs, audio, or other materials. Files save to
+                    Google Drive and the link appears for students
+                    automatically.
+                  </p>
+                </div>
+              </div>
+              <section className="admin-panel admin-drive-connect">
+                <div className="admin-panel-pad admin-drive-connect-row">
+                  <div>
+                    <strong>
+                      {driveConnected
+                        ? "Google Drive connected"
+                        : "Google Drive not connected"}
+                    </strong>
+                    <p>
+                      {driveConnected
+                        ? `Uploads are saved to ${driveAccountEmail || "your connected account"}'s Drive.`
+                        : "Connect the Google account that owns the Drive folder before uploading."}
+                    </p>
+                  </div>
+                  <a
+                    className="admin-button"
+                    href="/api/admin/drive-auth/start"
+                  >
+                    {driveConnected ? "Reconnect" : "Connect Google Drive"}
+                  </a>
+                </div>
+              </section>
+              <section className="admin-panel">
+                <div className="admin-panel-heading">
+                  <h2>Upload a file</h2>
+                  <span className="admin-muted">Up to 25 MB</span>
+                </div>
+                <div className="admin-panel-pad admin-file-upload-row">
+                  <label className="admin-field">
+                    File
+                    <input
+                      ref={uploadFileRef}
+                      type="file"
+                      disabled={busy}
+                      onChange={(e) => {
+                        const picked = e.target.files?.[0] || null;
+                        setUploadFile(picked);
+                        if (picked && !uploadName) setUploadName(picked.name);
+                      }}
+                    />
+                  </label>
+                  <label className="admin-field">
+                    Name
+                    <input
+                      type="text"
+                      maxLength={200}
+                      placeholder="Shown to students"
+                      value={uploadName}
+                      onChange={(e) => setUploadName(e.target.value)}
+                    />
+                  </label>
+                  <label className="admin-field">
+                    Description (optional)
+                    <input
+                      type="text"
+                      maxLength={1000}
+                      placeholder="What this file is for"
+                      value={uploadDescription}
+                      onChange={(e) => setUploadDescription(e.target.value)}
+                    />
+                  </label>
+                  <label className="admin-field">
+                    Module (optional)
+                    <select
+                      value={uploadModule}
+                      onChange={(e) => setUploadModule(e.target.value)}
+                    >
+                      <option value="">General</option>
+                      {MODULES.map((m) => (
+                        <option key={m} value={m}>
+                          {label(m)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="admin-button primary"
+                    disabled={busy || !uploadFile || !driveConnected}
+                    onClick={submitFileUpload}
+                  >
+                    {busy ? "Uploading…" : "Upload"}
+                  </button>
+                </div>
+              </section>
+              <section className="admin-panel">
+                {files.length ? (
+                  <div className="admin-table-scroll">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>FILE</th>
+                          <th>MODULE</th>
+                          <th>TYPE</th>
+                          <th>SIZE</th>
+                          <th>UPLOADED</th>
+                          <th></th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {files.map((file) => (
+                          <tr key={file.id}>
+                            <td>
+                              <div className="admin-file-name-cell">
+                                <strong>{file.name}</strong>
+                                {file.description && (
+                                  <small>{file.description}</small>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              {file.module ? (
+                                <span className="admin-badge published">
+                                  {label(file.module)}
+                                </span>
+                              ) : (
+                                <span className="admin-muted">General</span>
+                              )}
+                            </td>
+                            <td>{file.mimeType}</td>
+                            <td>{(file.sizeBytes / 1_000_000).toFixed(2)} MB</td>
+                            <td>{dateTime(file.createdAt)}</td>
+                            <td>
+                              <a
+                                className="admin-text-button"
+                                href={file.driveUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Open <Icon name="arrow" size={16} />
+                              </a>
+                            </td>
+                            <td>
+                              <button
+                                className="admin-text-button"
+                                disabled={busy}
+                                onClick={() => deleteDriveFile(file)}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="admin-empty">
+                    <Icon name="files" size={30} />
+                    <h3>No files yet</h3>
+                    <p>Files you upload appear here and on the student site.</p>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+          {section === "feedback" && (
+            <>
+              <div className="admin-page-heading">
+                <div>
+                  <p className="admin-eyebrow">HEAR FROM STUDENTS</p>
+                  <h1>Feedback</h1>
+                  <p>Problems students report from their dashboard show up here.</p>
+                </div>
+              </div>
+              <div className="admin-stat-grid">
+                <div className="admin-stat">
+                  <div>
+                    <span>Open</span>
+                    <span className="admin-stat-icon tone-0">
+                      <Icon name="feedback" />
+                    </span>
+                  </div>
+                  <strong>{feedbackTotals.open}</strong>
+                  <small>Needs a look</small>
+                </div>
+                <div className="admin-stat">
+                  <div>
+                    <span>Resolved</span>
+                    <span className="admin-stat-icon tone-1">
+                      <Icon name="check" />
+                    </span>
+                  </div>
+                  <strong>{feedbackTotals.resolved}</strong>
+                  <small>Already handled</small>
+                </div>
+              </div>
+              <section className="admin-panel">
+                {feedback.length ? (
+                  <div className="admin-table-scroll">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>STUDENT</th>
+                          <th>CATEGORY</th>
+                          <th>MODULE</th>
+                          <th>MESSAGE</th>
+                          <th>STATUS</th>
+                          <th>DATE</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {feedback.map((item) => (
+                          <tr key={item.id}>
+                            <td>
+                              <div className="admin-test-title">
+                                <div>
+                                  <strong>
+                                    {item.studentName ||
+                                      item.studentEmail.split("@")[0]}
+                                  </strong>
+                                  <small>{item.studentEmail}</small>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="admin-badge draft">
+                                {label(item.category)}
+                              </span>
+                            </td>
+                            <td>{item.module ? label(item.module) : "—"}</td>
+                            <td className="admin-feedback-message">
+                              {item.message}
+                            </td>
+                            <td>
+                              <span
+                                className={`admin-badge ${item.status === "open" ? "draft" : "published"}`}
+                              >
+                                {label(item.status)}
+                              </span>
+                            </td>
+                            <td>{dateTime(item.createdAt)}</td>
+                            <td>
+                              <button
+                                className="admin-text-button"
+                                disabled={busy}
+                                onClick={() => toggleFeedbackStatus(item)}
+                              >
+                                {item.status === "open"
+                                  ? "Mark resolved"
+                                  : "Reopen"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="admin-empty">
+                    <Icon name="feedback" size={30} />
+                    <h3>No feedback yet</h3>
+                    <p>Problems students report will show up here.</p>
                   </div>
                 )}
               </section>
