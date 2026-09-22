@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import { and, eq, gt } from "drizzle-orm";
-import { hash } from "bcryptjs";
 import { getDb } from "@/lib/db";
-import { adminSessions, adminSettings } from "@/lib/db/schema";
+import { adminSessions } from "@/lib/db/schema";
 import {
-  checkStoredPasscode,
+  checkStoredPassword,
+  replaceAdminPassword,
   sessionHash,
   sessionExpiry,
   storeAdminSession,
@@ -19,10 +19,14 @@ import {
 import {
   ADMIN_COOKIE,
   createAdminSession,
-  passcodeConfigured,
+  adminSessionConfigured,
   SESSION_SECONDS,
-} from "@/lib/admin/passcode";
+} from "@/lib/admin/password";
 import { limitedLogin } from "@/lib/admin/login-limit";
+import {
+  isStrongAdminPassword,
+  ADMIN_PASSWORD_HELP,
+} from "@/lib/admin/password-policy";
 export const runtime = "nodejs";
 export async function GET() {
   return NextResponse.json(
@@ -33,18 +37,18 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     checkAdminOrigin(request);
-    if (!passcodeConfigured())
+    if (!adminSessionConfigured())
       throw new AdminError("Admin sign-in is not configured yet.", 503);
     const raw = await request.text();
-    if (raw.length > 100) throw new AdminError("Enter a four-digit passcode.");
+    if (raw.length > 1024) throw new AdminError("Enter your admin password.");
     let body;
     try {
       body = JSON.parse(raw);
     } catch {
-      throw new AdminError("Enter a four-digit passcode.");
+      throw new AdminError("Enter your admin password.");
     }
-    if (!(await limitedLogin(() => checkStoredPasscode(body?.passcode))))
-      throw new AdminError("Incorrect passcode. Please try again.", 401);
+    if (!(await limitedLogin(() => checkStoredPassword(body?.password))))
+      throw new AdminError("Incorrect password. Please try again.", 401);
     const response = NextResponse.json(
       { ok: true },
       { headers: { "Cache-Control": "no-store" } },
@@ -119,26 +123,20 @@ export async function PUT(request: Request) {
     checkAdminOrigin(request);
     if (!(await hasAdminSession())) throw new AdminError("Panel locked.", 401);
     const raw = await request.text();
-    if (raw.length > 300) throw new AdminError("Invalid passcode request.");
-    const body = JSON.parse(raw);
-    if (
-      !/^\d{4}$/.test(body.newPasscode) ||
-      body.newPasscode !== body.confirmPasscode
-    )
-      throw new AdminError("Enter and confirm a four-digit passcode.");
-    if (!(await limitedLogin(() => checkStoredPasscode(body.currentPasscode))))
-      throw new AdminError("Current passcode is incorrect.", 401);
-    const passcodeHash = await hash(body.newPasscode, 12);
-    await getDb().transaction(async (tx) => {
-      await tx
-        .insert(adminSettings)
-        .values({ id: "main", passcodeHash })
-        .onConflictDoUpdate({
-          target: adminSettings.id,
-          set: { passcodeHash },
-        });
-      await tx.delete(adminSessions);
-    });
+    if (raw.length > 2048) throw new AdminError("Invalid password request.");
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      throw new AdminError("Invalid password request.");
+    }
+    if (!isStrongAdminPassword(body?.newPassword))
+      throw new AdminError(ADMIN_PASSWORD_HELP);
+    if (body.newPassword !== body.confirmPassword)
+      throw new AdminError("The new passwords do not match.");
+    if (!(await limitedLogin(() => checkStoredPassword(body.currentPassword))))
+      throw new AdminError("Current password is incorrect.", 401);
+    await replaceAdminPassword(body.newPassword);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return adminError(e);

@@ -2,7 +2,7 @@ import { validSession } from "./session-store";
 import { cookies } from "next/headers";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { ADMIN_COOKIE } from "./passcode";
+import { ADMIN_COOKIE } from "./password";
 import { NextResponse } from "next/server";
 import { AdminError } from "./errors";
 export { AdminError } from "./errors";
@@ -20,7 +20,7 @@ export function checkAdminOrigin(request: Request) {
 export async function requireAdmin(request?: Request) {
   if (request) checkAdminOrigin(request);
   if (!(await hasAdminSession()))
-    throw new AdminError("Enter the admin passcode to continue.", 401);
+    throw new AdminError("Enter the admin password to continue.", 401);
   const actor = {
     id: "a5c2fda9-4189-4862-a9fd-38853a946b51",
     name: "Administrator",

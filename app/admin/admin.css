@@ -893,6 +893,12 @@
 .admin-table tbody tr:hover {
   background: #fcfdff;
 }
+.admin-pricing-panel .admin-price-field {
+  margin-bottom: 0;
+}
+.admin-pricing-panel .admin-price-field input {
+  width: 110px;
+}
 .admin-test-title {
   display: flex;
   align-items: center;
@@ -943,6 +949,38 @@
 .admin-badge.archived {
   color: #758096;
   background: #eef0f5;
+}
+.admin-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 30px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.admin-mode-pill.live {
+  color: #397b60;
+  background: #eaf6ef;
+}
+.admin-mode-pill.test {
+  color: #986e2e;
+  background: #fcf3df;
+}
+.admin-stripe-live .admin-payment-stats {
+  padding: 21px 23px 0;
+  margin-bottom: 0;
+}
+.admin-stripe-balance .admin-stat {
+  min-height: 100px;
 }
 .admin-table-footer {
   display: flex;
@@ -2287,11 +2325,11 @@
     font-size: 11px;
   }
 }
-.admin-entry-card .admin-pin-input {
-  font-size: 28px;
-  letter-spacing: 18px;
-  text-align: center;
-  padding: 15px 10px 15px 28px;
+.admin-entry-card .admin-password-input {
+  font-size: 16px;
+  letter-spacing: normal;
+  text-align: left;
+  padding: 15px;
 }
 .admin-entry-card form .admin-button {
   width: 100%;
@@ -2302,7 +2340,7 @@ dialog.admin-modal { border: 0; padding: 0; }
 dialog.admin-modal::backdrop { background: rgb(15 23 42 / 45%); }
 
 /* Native dialogs need explicit centering after the global margin reset. */
-dialog.admin-passcode-dialog {
+dialog.admin-password-dialog {
   position: fixed;
   inset: 0;
   margin: auto;
@@ -2312,23 +2350,23 @@ dialog.admin-passcode-dialog {
   color: var(--a-text, #182642);
   text-align: left;
 }
-dialog.admin-passcode-dialog::backdrop {
+dialog.admin-password-dialog::backdrop {
   background: rgb(15 23 42 / 48%);
   backdrop-filter: blur(4px);
 }
-.admin-passcode-form {
+.admin-password-form {
   display: grid;
   gap: 20px;
   padding: 24px;
 }
-.admin-shell .admin-passcode-description {
+.admin-shell .admin-password-description {
   color: #65748b;
   font-size: 14px;
   line-height: 1.6;
 }
-.admin-passcode-form .admin-field { margin: 0; gap: 8px; }
-.admin-passcode-form input { min-height: 46px; }
-.admin-shell .admin-passcode-note {
+.admin-password-form .admin-field { margin: 0; gap: 8px; }
+.admin-password-form input { min-height: 46px; }
+.admin-shell .admin-password-note {
   padding: 12px 14px;
   border: 1px solid #e4e9f7;
   border-radius: 10px;
@@ -2337,7 +2375,7 @@ dialog.admin-passcode-dialog::backdrop {
   font-size: 13px;
   line-height: 1.6;
 }
-.admin-passcode-actions {
+.admin-password-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -2345,8 +2383,8 @@ dialog.admin-passcode-dialog::backdrop {
   padding-top: 4px;
 }
 @media (max-width: 480px) {
-  .admin-passcode-form { padding: 20px; }
-  .admin-passcode-actions .admin-button { flex: 1; }
+  .admin-password-form { padding: 20px; }
+  .admin-password-actions .admin-button { flex: 1; }
 }
 
 /* Let controls reflow before their labels collide with the navigation. */
@@ -2410,3 +2448,5 @@ dialog.admin-passcode-dialog::backdrop {
   .admin-sidebar { overflow-y: auto; }
   .admin-modal-head { position: static; }
 }
+
+.admin-students-toolbar { flex-wrap: wrap; }

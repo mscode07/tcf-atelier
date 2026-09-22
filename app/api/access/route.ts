@@ -10,6 +10,7 @@ import { getStripe } from "@/lib/stripe";
 import { fulfillCheckoutSession } from "@/lib/stripe-fulfillment";
 
 export async function GET(request: Request) {
+  try {
   const requestedModule = new URL(request.url).searchParams.get("module");
   const module = isModule(requestedModule) ? requestedModule : undefined;
   const session = await auth();
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
 
   // Recover a paid Checkout if webhook delivery was delayed or unavailable locally.
   if (!access.active && access.userId) {
-    const [pendingPayment] = await getDb()
+    const pendingPayments = await getDb()
       .select({ checkoutSessionId: payments.providerOrderId })
       .from(payments)
       .where(
@@ -40,8 +41,9 @@ export async function GET(request: Request) {
         ),
       )
       .orderBy(desc(payments.createdAt))
-      .limit(1);
-    if (pendingPayment?.checkoutSessionId?.startsWith("cs_")) {
+      .limit(8);
+    for (const pendingPayment of pendingPayments) {
+      if (!pendingPayment.checkoutSessionId?.startsWith("cs_")) continue;
       try {
         const checkout = await getStripe().checkout.sessions.retrieve(
           pendingPayment.checkoutSessionId,
@@ -52,6 +54,7 @@ export async function GET(request: Request) {
         ) {
           await fulfillCheckoutSession(checkout);
           access = await getAccessByEmail(session.user.email, module);
+          if (access.active) break;
         }
       } catch (error) {
         console.error("Pending Stripe payment reconciliation failed", error);
@@ -74,4 +77,11 @@ export async function GET(request: Request) {
       headers: { "Cache-Control": "private, no-store, max-age=0" },
     },
   );
+  } catch (error) {
+    console.error("Access check failed", error);
+    return NextResponse.json(
+      { error: "Access could not be verified. Please retry." },
+      { status: 503 },
+    );
+  }
 }

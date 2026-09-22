@@ -2,13 +2,8 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
-import {
-  payments,
-  pricingPlans,
-  userSubscriptions,
-  users,
-} from "@/lib/db/schema";
-import { getStripe, isStripePlanCode, stripePlans } from "@/lib/stripe";
+import { payments, userSubscriptions, users } from "@/lib/db/schema";
+import { getPricingPlan, getStripe, isStripePlanCode } from "@/lib/stripe";
 
 export async function POST(request: Request) {
   try {
@@ -51,38 +46,15 @@ export async function POST(request: Request) {
     const origin = siteUrl.origin;
 
     const planCode = body.plan;
-    const planConfig = stripePlans[planCode];
-    const priceId = process.env[planConfig.priceEnv];
-    if (!priceId) throw new Error(`${planConfig.priceEnv} is missing.`);
-    const stripe = getStripe();
-    const price = await stripe.prices.retrieve(priceId);
-    if (!price.active || price.unit_amount == null || !price.currency)
+    const db = getDb();
+    const plan = await getPricingPlan(planCode, db);
+    if (!plan.stripePriceId)
       return NextResponse.json(
         { error: "This plan is not currently available." },
         { status: 409 },
       );
-    if (
-      price.unit_amount !== planConfig.amountMinor ||
-      price.currency.toLowerCase() !== planConfig.currency
-    ) {
-      console.error("Stripe price does not match configured package", {
-        planCode,
-        priceId,
-        expectedAmount: planConfig.amountMinor,
-        actualAmount: price.unit_amount,
-        expectedCurrency: planConfig.currency,
-        actualCurrency: price.currency,
-      });
-      return NextResponse.json(
-        {
-          error:
-            "This plan is temporarily unavailable because its Stripe price is misconfigured.",
-        },
-        { status: 409 },
-      );
-    }
+    const stripe = getStripe();
 
-    const db = getDb();
     const [user] = await db
       .select({ id: users.id })
       .from(users)
@@ -94,29 +66,6 @@ export async function POST(request: Request) {
         { status: 404 },
       );
     const now = new Date();
-    const [plan] = await db
-      .insert(pricingPlans)
-      .values({
-        code: planCode,
-        name: planConfig.label,
-        durationDays: planConfig.durationDays,
-        priceMinor: planConfig.amountMinor,
-        currency: planConfig.currency.toUpperCase(),
-        isActive: true,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: pricingPlans.code,
-        set: {
-          name: planConfig.label,
-          durationDays: planConfig.durationDays,
-          priceMinor: planConfig.amountMinor,
-          currency: planConfig.currency.toUpperCase(),
-          isActive: true,
-          updatedAt: now,
-        },
-      })
-      .returning({ id: pricingPlans.id });
     const [subscription] = await db
       .insert(userSubscriptions)
       .values({ userId: user.id, planId: plan.id })
@@ -127,8 +76,8 @@ export async function POST(request: Request) {
         userId: user.id,
         subscriptionId: subscription.id,
         provider: "stripe",
-        amountMinor: planConfig.amountMinor,
-        currency: planConfig.currency.toUpperCase(),
+        amountMinor: plan.priceMinor,
+        currency: plan.currency,
         metadata: { planCode },
       })
       .returning({ id: payments.id });
@@ -136,7 +85,7 @@ export async function POST(request: Request) {
     const checkout = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: email,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: plan.stripePriceId, quantity: 1 }],
       success_url: `${origin}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?payment=cancelled#pricing`,
       allow_promotion_codes: true,
@@ -145,7 +94,7 @@ export async function POST(request: Request) {
         paymentId: payment.id,
         subscriptionId: subscription.id,
         planCode,
-        durationDays: String(planConfig.durationDays),
+        durationDays: String(plan.durationDays),
         userId: user.id,
       },
       payment_intent_data: {

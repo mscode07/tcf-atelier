@@ -19,6 +19,10 @@ type SpeakingQuestion = {
     fills?: Record<string, string>;
   };
 };
+type SpeakingSummary = Pick<
+  SpeakingQuestion,
+  "id" | "number" | "tache" | "category" | "titleFr" | "durationSeconds"
+>;
 
 export default function SpeakingLibrary({
   onBack,
@@ -27,7 +31,11 @@ export default function SpeakingLibrary({
   onBack: () => void;
   nav: (minimal?: boolean) => React.ReactNode;
 }) {
-  const [questions, setQuestions] = useState<SpeakingQuestion[]>([]);
+  const [questions, setQuestions] = useState<SpeakingSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [taskCounts, setTaskCounts] = useState<Record<string, number>>({});
+  const [loadingMore, setLoadingMore] = useState(false);
   const [task, setTask] = useState<"all" | 2 | 3>("all");
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
@@ -43,18 +51,29 @@ export default function SpeakingLibrary({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  useEffect(() => {
-    fetch("/api/materials/speaking", { cache: "no-store" })
+  const loadQuestions = (offset: number, replace = false) => {
+    setLoadingMore(true);
+    const params = new URLSearchParams({ limit: "12", offset: String(offset), task: String(task), category, search });
+    fetch(`/api/materials/speaking?${params}`)
       .then((response) => {
         if (!response.ok) throw new Error("Module access required");
         return response.json();
       })
-      .then((data: { questions: SpeakingQuestion[] }) =>
-        setQuestions(data.questions),
-      )
+      .then((data: { questions: SpeakingSummary[]; total: number; categories: string[]; taskCounts: Record<string, number> }) => {
+        setQuestions((current) => replace ? data.questions : [...current, ...data.questions]);
+        setTotal(data.total);
+        setCategories(data.categories);
+        setTaskCounts(data.taskCounts);
+      })
       .catch(() => {
         window.location.href = "/?access=subscription_required";
-      });
+      })
+      .finally(() => setLoadingMore(false));
+  };
+  useEffect(() => {
+    void loadQuestions(0, true);
+  }, [task, category, search]);
+  useEffect(() => {
     try {
       setDone(
         new Set(JSON.parse(localStorage.getItem("tcf-speaking-done") || "[]")),
@@ -67,21 +86,7 @@ export default function SpeakingLibrary({
       recorderRef.current?.stream.getTracks().forEach((track) => track.stop());
     };
   }, []);
-
-  const categories = Array.from(
-    new Set(questions.map((item) => item.category)),
-  ).sort();
-  const filtered = questions.filter((item) => {
-    const query = search.trim().toLocaleLowerCase("fr");
-    return (
-      (task === "all" || item.tache === task) &&
-      (category === "all" || item.category === category) &&
-      (!query ||
-        `${item.category} ${item.promptFr}`
-          .toLocaleLowerCase("fr")
-          .includes(query))
-    );
-  });
+  const filtered = questions;
   const formatTime = (seconds: number) =>
     `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   const resetFilters = () => {
@@ -95,8 +100,10 @@ export default function SpeakingLibrary({
     setDone(next);
     localStorage.setItem("tcf-speaking-done", JSON.stringify(Array.from(next)));
   };
-  const openQuestion = (question: SpeakingQuestion) => {
-    setSelected(question);
+  const openQuestion = (question: SpeakingSummary) => {
+    void fetch(`/api/materials/speaking?id=${encodeURIComponent(String(question.id))}`)
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((data: { question: SpeakingQuestion }) => setSelected(data.question));
     setShowGuide(false);
     setShowReference(false);
     setElapsed(0);
@@ -296,15 +303,15 @@ export default function SpeakingLibrary({
           </p>
           <div className="speaking-stats">
             <div>
-              <strong>{questions.length}</strong>
+              <strong>{Object.values(taskCounts).reduce((sum, count) => sum + count, 0)}</strong>
               <span>core prompts</span>
             </div>
             <div>
-              <strong>{questions.filter((q) => q.tache === 2).length}</strong>
+              <strong>{taskCounts["2"] ?? 0}</strong>
               <span>Task 2</span>
             </div>
             <div>
-              <strong>{questions.filter((q) => q.tache === 3).length}</strong>
+              <strong>{taskCounts["3"] ?? 0}</strong>
               <span>Task 3</span>
             </div>
             <div>
@@ -373,7 +380,7 @@ export default function SpeakingLibrary({
                 </div>
                 <span>{formatTime(item.durationSeconds)}</span>
               </div>
-              <p>{item.promptFr}</p>
+              <p>{item.titleFr || "Open this prompt to see the full speaking task."}</p>
               <div className="speaking-card-bottom">
                 <span className={done.has(item.id) ? "done" : ""}>
                   {done.has(item.id) ? "✓ Completed" : "Not done"}
@@ -387,11 +394,26 @@ export default function SpeakingLibrary({
               </div>
             </article>
           ))}
-          {!questions.length && (
-            <div className="writing-empty">Loading speaking prompts…</div>
+          {loadingMore && !questions.length && (
+            <section className="catalog-loader library-loader" role="status" aria-live="polite">
+              <div className="catalog-loader-mark" aria-hidden="true"><i /><i /><i /></div>
+              <div><strong>Preparing your speaking practice</strong><p>Loading your first set of prompts…</p></div>
+            </section>
+          )}
+          {!loadingMore && !questions.length && (
+            <div className="writing-empty">No speaking prompts are currently available.</div>
           )}
           {questions.length > 0 && !filtered.length && (
             <div className="writing-empty">No prompts match these filters.</div>
+          )}
+          {questions.length < total && (
+            <button
+              className="btn secondary writing-load"
+              disabled={loadingMore}
+              onClick={() => loadQuestions(questions.length)}
+            >
+              {loadingMore ? "Loading…" : "Load 12 more"}
+            </button>
           )}
         </section>
       </main>

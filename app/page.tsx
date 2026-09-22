@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { signIn, signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { signOut } from "next-auth/react";
 import dynamic from "next/dynamic";
+import AuthCards from "./components/AuthCards";
 
 const loadingLibrary = () => (
   <main className="section" role="status">
@@ -27,6 +28,24 @@ type Route =
   | "speaking"
   | "comingSoon";
 type ModuleName = "Listening" | "Reading" | "Writing" | "Speaking";
+const moduleRoute = (module: ModuleName): Route =>
+  module === "Writing"
+    ? "writing"
+    : module === "Speaking"
+      ? "speaking"
+      : "tests";
+const moduleFromPath = (path: string): ModuleName | undefined => {
+  const segment = path.split("/").filter(Boolean)[0]?.toLowerCase();
+  return segment === "listening"
+    ? "Listening"
+    : segment === "reading"
+      ? "Reading"
+      : segment === "writing"
+        ? "Writing"
+        : segment === "speaking"
+          ? "Speaking"
+          : undefined;
+};
 type User = { email: string };
 type Question = {
   level: string;
@@ -121,9 +140,16 @@ const questions: Question[] = [
 ];
 
 export default function HomePage() {
-  const [route, setRoute] = useState<Route>("home");
+  const initialModule =
+    typeof window === "undefined"
+      ? undefined
+      : moduleFromPath(window.location.pathname);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [route, setRoute] = useState<Route>(initialModule ? "auth" : "home");
   const [user, setUser] = useState<User | null>(null);
-  const [moduleName, setModuleName] = useState<ModuleName>("Listening");
+  const [moduleName, setModuleName] = useState<ModuleName>(
+    initialModule ?? "Listening",
+  );
   const [test, setTest] = useState(1);
   const [mode] = useState<"exam" | "review">("review");
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -133,6 +159,7 @@ export default function HomePage() {
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
   const [accessActive, setAccessActive] = useState(false);
+  const [accessReady, setAccessReady] = useState(false);
   const [moduleAccess, setModuleAccess] = useState<
     Record<string, { active: boolean }>
   >({});
@@ -141,24 +168,56 @@ export default function HomePage() {
     { testNumber: number; title: string }[]
   >([]);
   const [catalogError, setCatalogError] = useState("");
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [livePricing, setLivePricing] = useState<
+    Record<string, { priceMinor: number; currency: string }>
+  >({});
+  useEffect(() => {
+    let gone = false;
+    fetch("/api/pricing", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { plans?: { code: string; priceMinor: number; currency: string }[] } | null) => {
+        if (gone || !data?.plans) return;
+        const next: Record<string, { priceMinor: number; currency: string }> = {};
+        for (const plan of data.plans) next[plan.code] = plan;
+        setLivePricing(next);
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, []);
+  const formatPrice = (code: string, fallback: string) => {
+    const live = livePricing[code];
+    if (!live) return fallback;
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: live.currency.toUpperCase(),
+      minimumFractionDigits: live.priceMinor % 100 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(live.priceMinor / 100);
+  };
   const refreshAccess = async () => {
     const response = await fetch("/api/access", { cache: "no-store" });
-    if (!response.ok) {
+    if (response.status === 401) {
       setModuleAccess({});
       setAccessActive(false);
+      setAccessReady(true);
       return;
     }
+    if (!response.ok) return;
     const data = await response.json();
     setAccessActive(Boolean(data.active));
     setModuleAccess(data.modules || {});
     setIsAdmin(Boolean(data.isAdmin));
+    setAccessReady(true);
   };
   useEffect(() => {
     if (!user) return;
     void refreshAccess().catch(() => {});
     const timer = setInterval(
       () => void refreshAccess().catch(() => {}),
-      30000,
+      120000,
     );
     return () => clearInterval(timer);
   }, [user]);
@@ -167,6 +226,7 @@ export default function HomePage() {
     let cancelled = false;
     setCatalog([]);
     setCatalogError("");
+    setCatalogLoading(true);
     fetch(`/api/materials/${moduleName.toLowerCase()}?catalog=1`, {
       cache: "no-store",
     })
@@ -182,6 +242,9 @@ export default function HomePage() {
       })
       .catch((e) => {
         if (!cancelled) setCatalogError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setCatalogLoading(false);
       });
     return () => {
       cancelled = true;
@@ -199,6 +262,10 @@ export default function HomePage() {
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const authStatus = query.get("auth");
+    if (authStatus === "signin" || authStatus === "signup") {
+      setAuthMode(authStatus);
+      setRoute("auth");
+    }
     const paymentStatus = query.get("payment");
     const checkoutSessionId = query.get("session_id");
     const accessStatus = query.get("access");
@@ -251,12 +318,12 @@ export default function HomePage() {
           const access = await adminAccess.json();
           if (access.isAdmin) {
             setUser({ email: "passcode-admin@tcf.internal.invalid" });
-            setRoute("dashboard");
+            setRoute(initialModule ? moduleRoute(initialModule) : "dashboard");
           }
           return;
         }
         setUser(sessionUser);
-        setRoute("dashboard");
+        setRoute(initialModule ? moduleRoute(initialModule) : "dashboard");
 
         // The user effect performs the access check once and keeps it fresh.
       } catch (error) {
@@ -267,7 +334,7 @@ export default function HomePage() {
         );
       }
     })();
-  }, []);
+  }, [initialModule]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 2200);
@@ -283,33 +350,13 @@ export default function HomePage() {
 
   useEffect(() => {
     if (
+      accessReady &&
       ["writing", "speaking", "tests"].includes(route) &&
       !moduleAccess[moduleName.toLowerCase()]?.active
     )
       setRoute("dashboard");
-  }, [moduleAccess, moduleName, route]);
+  }, [accessReady, moduleAccess, moduleName, route]);
 
-  const login = async (email: string) => {
-    if (email === "learner@gmail.com") {
-      void signIn("google", { callbackUrl: "/" });
-      return;
-    }
-    const password =
-      (document.getElementById("password") as HTMLInputElement | null)?.value ??
-      "";
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-    if (!result || result.error) {
-      setToast("Incorrect email or password.");
-      return;
-    }
-    const next = { email: email.trim().toLowerCase() };
-    setUser(next);
-    setRoute("dashboard");
-  };
   const logout = () => {
     void signOut({ redirect: false });
     setUser(null);
@@ -318,20 +365,18 @@ export default function HomePage() {
     setRoute("home");
   };
   const openModule = (nextModule: ModuleName) => {
+    if (!accessReady) {
+      setToast("Checking your plan…");
+      void refreshAccess().catch(() => {});
+      return;
+    }
     if (!moduleAccess[nextModule.toLowerCase()]?.active) {
       setToast("Choose an active plan to unlock the practice modules.");
       setRoute("home");
       setTimeout(() => document.querySelector("#pricing")?.scrollIntoView(), 0);
       return;
     }
-    setModuleName(nextModule);
-    setRoute(
-      nextModule === "Writing"
-        ? "writing"
-        : nextModule === "Speaking"
-          ? "speaking"
-          : "tests",
-    );
+    window.location.assign(`/${nextModule.toLowerCase()}`);
   };
   const beginReview = (selectedTest: number) => {
     setTest(selectedTest);
@@ -392,10 +437,7 @@ export default function HomePage() {
   };
   const nav = (minimal = false) => (
     <nav className="nav">
-      <button
-        className="brand"
-        onClick={() => setRoute(user ? "dashboard" : "home")}
-      >
+      <button className="brand" onClick={() => window.location.assign("/")}>
         <span className="brand-mark" aria-hidden="true">
           TM
         </span>
@@ -407,7 +449,7 @@ export default function HomePage() {
       <div className="nav-actions">
         {!minimal && (
           <>
-            <button
+            {/* <button
               className="nav-link"
               onClick={() => {
                 setRoute("home");
@@ -418,7 +460,7 @@ export default function HomePage() {
               }}
             >
               Practice
-            </button>
+            </button> */}
             <button
               className="nav-link"
               onClick={() => {
@@ -455,10 +497,10 @@ export default function HomePage() {
           </>
         ) : (
           <>
-            <button className="nav-signin" onClick={() => setRoute("auth")}>
+            <button className="nav-signin" onClick={() => { setAuthMode("signin"); setRoute("auth"); }}>
               Sign in
             </button>
-            <button className="btn nav-cta" onClick={() => setRoute("auth")}>
+            <button className="btn nav-cta" onClick={() => { setAuthMode("signup"); setRoute("auth"); }}>
               Start practising
             </button>
           </>
@@ -502,7 +544,7 @@ export default function HomePage() {
               <button onClick={logout}>Sign out</button>
             </>
           ) : (
-            <button onClick={() => setRoute("auth")}>Sign in</button>
+            <button onClick={() => { setAuthMode("signin"); setRoute("auth"); }}>Sign in</button>
           )}
         </div>
       </details>
@@ -531,7 +573,7 @@ export default function HomePage() {
             <div className="hero-actions">
               <button
                 className="btn"
-                onClick={() => setRoute(user ? "dashboard" : "auth")}
+                onClick={() => { setAuthMode("signup"); setRoute(user ? "dashboard" : "auth"); }}
               >
                 Start practising free <span>→</span>
               </button>
@@ -545,9 +587,7 @@ export default function HomePage() {
               </button>
             </div>
             <div className="mini-proof">
-              <span>
-                <i>✓</i> No subscription
-              </span>
+              <span>{/* <i>✓</i> No subscription */}</span>
               <span>
                 <i>✓</i> All four skills
               </span>
@@ -616,135 +656,11 @@ export default function HomePage() {
             <span>TCF score mapping</span>
           </div>
         </div>
-        <section className="section" id="features">
-          <div className="section-head">
-            <div>
-              <div className="section-kicker">Everything you need</div>
-              <h2>Master every part of the TCF.</h2>
-            </div>
-            <p className="text-lg max-w-xl">
-              One calm, structured workspace for building the exact French
-              skills your exam preparation calls for.
-            </p>
-          </div>
-          <div className="feature-grid">
-            {[
-              [
-                "01",
-                "Listen",
-                "Focused audio prompts with immediate corrections.",
-                "Listening",
-              ],
-              [
-                "02",
-                "Read",
-                "Authentic notices, messages, and longer texts.",
-                "Reading",
-              ],
-              [
-                "03",
-                "Write",
-                "Structured prompts from A1 through C1.",
-                "Writing",
-              ],
-              [
-                "04",
-                "Speak",
-                "Guided scenarios with clear preparation steps.",
-                "Speaking",
-              ],
-            ].map((item) => (
-              <article className="feature" key={item[0]}>
-                <div className="feature-icon-row">
-                  <span className="font-semibold text-xl text-blue-600">
-                    {item[0]}
-                  </span>
-                  <ModuleIcon name={item[3] as ModuleName} />
-                </div>
-                <h3 className="font-semibold">{item[1]}</h3>
-                <p className="text-md font-semibold">{item[2]}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-        <section className="level-journey" aria-label="TCF level journey">
-          <div className="level-intro">
-            <div className="section-kicker">Progress you can see</div>
-            <h2>Grow from foundation to fluency.</h2>
-            <p>
-              Practice moves with you, from everyday language to confident,
-              complex communication.
-            </p>
-          </div>
-          <div className="level-track">
-            {[
-              ["A1", "Discover", "First essentials"],
-              ["A2", "Build", "Everyday French"],
-              ["B1", "Connect", "Independent use"],
-              ["B2", "Express", "Confident fluency"],
-              ["C1", "Master", "Advanced control"],
-            ].map((level, index) => (
-              <div className="level-stop" key={level[0]}>
-                <span>{level[0]}</span>
-                <strong>{level[1]}</strong>
-                <small>{level[2]}</small>
-                {index < 4 && <i />}
-              </div>
-            ))}
-          </div>
-        </section>
-        <section className="study-path">
-          <div className="study-path-copy">
-            <div className="section-kicker">A smarter study rhythm</div>
-            <h2>A clear path from first practice to test day.</h2>
-            <p>
-              Stop guessing what to study next. Short, focused sessions make
-              progress visible and keep your preparation moving.
-            </p>
-            <button
-              className="btn secondary"
-              onClick={() => setRoute(user ? "dashboard" : "auth")}
-            >
-              Build my study plan →
-            </button>
-          </div>
-          <div className="path-steps">
-            {[
-              [
-                "01",
-                "Choose your skill",
-                "Focus on listening, reading, writing, or speaking.",
-              ],
-              [
-                "02",
-                "Practise realistically",
-                "Work through exam-style questions at your own pace.",
-              ],
-              [
-                "03",
-                "Learn from feedback",
-                "See corrections and understand where to improve.",
-              ],
-              [
-                "04",
-                "Track your readiness",
-                "Follow your scores and prepare with confidence.",
-              ],
-            ].map((step) => (
-              <div className="path-step" key={step[0]}>
-                <span>{step[0]}</span>
-                <div>
-                  <h3>{step[1]}</h3>
-                  <p>{step[2]}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        
         <section className="section pricing-section" id="pricing">
           <div className="pricing-heading">
             <div className="font-semibold text-blue-600 text-2xl">
-              Simple access, no subscription
+              Simple access
             </div>
             <h2 className="font-semibold">Pick the time you need</h2>
             <p className="font-semibold">
@@ -758,7 +674,7 @@ export default function HomePage() {
                 "7-days",
                 "Starter",
                 "7 days",
-                "$10",
+                formatPrice("7-days", "$10"),
                 [
                   "All 40 practice tests",
                   "Listening and Reading",
@@ -770,7 +686,7 @@ export default function HomePage() {
                 "30-days",
                 "Focused",
                 "30 days",
-                "$25",
+                formatPrice("30-days", "$25"),
                 [
                   "Everything in Starter",
                   "30 days of full access",
@@ -782,7 +698,7 @@ export default function HomePage() {
                 "60-days",
                 "Complete",
                 "60 days",
-                "$40",
+                formatPrice("60-days", "$45"),
                 [
                   "Everything in Focused",
                   "60 days of full access",
@@ -828,6 +744,132 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+
+        <section className="section" id="features">
+          <div className="section-head">
+            <div>
+              <div className="section-kicker">Everything you need</div>
+              <h2>Master every part of the TCF.</h2>
+            </div>
+            <p className="text-lg max-w-xl">
+              One calm, structured workspace for building the exact French
+              skills your exam preparation calls for.
+            </p>
+          </div>
+          <div className="feature-grid">
+            {[
+              [
+                "01",
+                "Listen",
+                "Focused audio prompts with immediate corrections.",
+                "Listening",
+              ],
+              [
+                "02",
+                "Read",
+                "Authentic notices, messages, and longer texts.",
+                "Reading",
+              ],
+              [
+                "03",
+                "Write",
+                "Structured prompts from A1 through C1.",
+                "Writing",
+              ],
+              [
+                "04",
+                "Speak",
+                "Guided scenarios with clear preparation steps.",
+                "Speaking",
+              ],
+            ].map((item) => (
+              <a className="feature feature-link" href="#pricing" key={item[0]} aria-label={`${item[1]} — view pricing plans`}>
+                <div className="feature-icon-row">
+                  <span className="font-semibold text-xl text-blue-600">
+                    {item[0]}
+                  </span>
+                  <ModuleIcon name={item[3] as ModuleName} />
+                </div>
+                <h3 className="font-semibold">{item[1]}</h3>
+                <p className="text-md font-semibold">{item[2]}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+        <section className="level-journey" aria-label="TCF level journey">
+          <div className="level-intro">
+            <div className="section-kicker">Progress you can see</div>
+            <h2>Grow from foundation to fluency.</h2>
+            <p>
+              Practice moves with you, from everyday language to confident,
+              complex communication.
+            </p>
+          </div>
+          <div className="level-track">
+            {[
+              ["A1", "Discover", "First essentials"],
+              ["A2", "Build", "Everyday French"],
+              ["B1", "Connect", "Independent use"],
+              ["B2", "Express", "Confident fluency"],
+              ["C1", "Master", "Advanced control"],
+            ].map((level, index) => (
+              <div className="level-stop" key={level[0]}>
+                <span>{level[0]}</span>
+                <strong>{level[1]}</strong>
+                <small>{level[2]}</small>
+                {index < 4 && <i />}
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="study-path">
+          <div className="study-path-copy">
+            <div className="section-kicker">A smarter study rhythm</div>
+            <h2>A clear path from first practice to test day.</h2>
+            <p>
+              Stop guessing what to study next. Short, focused sessions make
+              progress visible and keep your preparation moving.
+            </p>
+            <button
+              className="btn secondary"
+              onClick={() => { setAuthMode("signup"); setRoute(user ? "dashboard" : "auth"); }}
+            >
+              Build my study plan →
+            </button>
+          </div>
+          <div className="path-steps">
+            {[
+              [
+                "01",
+                "Choose your skill",
+                "Focus on listening, reading, writing, or speaking.",
+              ],
+              [
+                "02",
+                "Practise realistically",
+                "Work through exam-style questions at your own pace.",
+              ],
+              [
+                "03",
+                "Learn from feedback",
+                "See corrections and understand where to improve.",
+              ],
+              [
+                "04",
+                "Track your readiness",
+                "Follow your scores and prepare with confidence.",
+              ],
+            ].map((step) => (
+              <div className="path-step" key={step[0]}>
+                <span>{step[0]}</span>
+                <div>
+                  <h3>{step[1]}</h3>
+                  <p>{step[2]}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
         <section className="testimonial-section">
           <div className="testimonial-mark">“</div>
           <blockquote>
@@ -849,7 +891,7 @@ export default function HomePage() {
           </div>
           <button
             className="btn"
-            onClick={() => setRoute(user ? "dashboard" : "auth")}
+            onClick={() => { setAuthMode("signup"); setRoute(user ? "dashboard" : "auth"); }}
           >
             Start practising today →
           </button>
@@ -894,148 +936,138 @@ export default function HomePage() {
   const Auth = () => (
     <div className="shell">
       {nav(true)}
-      <div className="auth-wrap">
-        <form
-          className="auth-card"
-          onSubmit={(event: FormEvent<HTMLFormElement>) => {
-            event.preventDefault();
-            login(new FormData(event.currentTarget).get("email") as string);
-          }}
-        >
-          <div className="text-blue-600 text-2xl font-bold text-center mb-3">
-            Welcome to your study room
-          </div>
-          <p className="text-center mb-3 font-semibold">
-            Sign in or create an account — it only takes a moment.
-          </p>
-          <button
-            type="button"
-            className="btn google"
-            onClick={() => {
-              login("learner@gmail.com");
-              setToast("Demo Google account connected");
-            }}
-          >
-            G&nbsp;&nbsp; Continue with Google
-          </button>
-          <div className="divider">OR WITH EMAIL</div>
-          <div className="field">
-            <label htmlFor="email">Email address</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minLength={6}
-              placeholder="At least 6 characters"
-            />
-          </div>
-          <button className="btn full-button mt-2">Continue →</button>
-        </form>
-      </div>
+      <AuthCards key={authMode} mode={authMode} setMode={setAuthMode} onSignedIn={(email) => {
+        setUser({ email });
+        setRoute(initialModule ? moduleRoute(initialModule) : "dashboard");
+      }} />
     </div>
   );
 
   const Dashboard = () => (
     <div className="shell">
       {nav()}
-      <main className="dashboard">
-        <div className="welcome">
-          <div>
-            <div className="text-xl font-bold text-blue-600 mb-3">
-              Your learning room
-            </div>
-            <h1 className="text-4xl mb-3 font-bold">Welcome back,</h1>
-            <p className="text-lg text-gray-500 font-medium mt-2">
-              {user?.email?.split("@")[0]}
+      <main className="dashboard student-dashboard">
+        <section className="student-welcome" aria-labelledby="student-title">
+          <div className="student-welcome-copy">
+            <span className="student-kicker">Your French journey</span>
+            <h1 id="student-title">Bonjour, {user?.email?.split("@")[0]}.</h1>
+            <p>
+              A small session today is the easiest way to keep your TCF goal
+              moving.
+            </p>
+            <p className={`plan-chip ${accessActive ? "on" : "off"}`}>
+              {accessActive
+                ? "Your practice plan is active"
+                : "Choose a plan to unlock practice"}
             </p>
           </div>
-          <button
-            className="btn secondary"
-            onClick={() => openModule("Listening")}
-          >
-            Resume practice →
-          </button>
-        </div>
-        <div className="overview-stats">
-          <div>
-            <strong>{progressData?.overall.attempted ?? 0}</strong>
-            <span className=" text-gray-500 font-medium">tests attempted</span>
-          </div>
-          <div>
-            <strong>{progressData?.overall.completed ?? 0}</strong>
-            <span className="text-gray-500 font-medium">tests completed</span>
-          </div>
-          <div>
-            <strong>{progressData?.overall.average ?? 0}%</strong>
-            <span className="text-gray-500 font-medium">overall average</span>
-          </div>
-        </div>
-        <div className="module-overviews">
-          <ModuleOverview
-            name="Listening"
-            data={progressData?.modules.listening}
-            onOpen={() => openModule("Listening")}
-          />
-          <ModuleOverview
-            name="Reading"
-            data={progressData?.modules.reading}
-            onOpen={() => openModule("Reading")}
-          />
-        </div>
-        <div className="dashboard-section-head">
-          <div>
-            <div className="text-blue-600 text-xl font-bold">Practice</div>
-            <h2 className="text-4xl font-bold mt-2">Choose a skill</h2>
-          </div>
-          <p className="text-lg text-gray-500 mt-2">
-            Practice all four TCF skills from one focused workspace.
-          </p>
-        </div>
-        {isAdmin && (
-          <a
-            className="btn"
-            href="/admin"
-            style={{ marginBottom: 24, display: "inline-flex" }}
-          >
-            Open admin workspace →
-          </a>
-        )}
-        <div className="module-grid">
-          {[
-            ["Listening", "Audio comprehension"],
-            ["Reading", "Text comprehension"],
-            ["Writing", "Guided writing prompts"],
-            ["Speaking", "Guided speaking prompts"],
-          ].map((item) => (
-            <button
-              className="module"
-              key={item[0]}
-              onClick={() => openModule(item[0] as ModuleName)}
-            >
-              <ModuleIcon name={item[0] as ModuleName} />
-              <b>
-                {item[0]}{" "}
-                {!moduleAccess[item[0].toLowerCase()]?.active && (
-                  <span aria-label="Locked" title="Module access required">
-                    🔒
-                  </span>
-                )}
-              </b>
-              <small>{item[1]}</small>
+          <div className="daily-card">
+            <span className="daily-card-label">TODAY&apos;S FOCUS</span>
+            <div className="daily-card-heading">
+              <span aria-hidden="true">◌</span>
+              <div>
+                <strong>Listening practice</strong>
+                <small>Build confidence with exam-style audio</small>
+              </div>
+            </div>
+            <button className="btn" onClick={() => openModule("Listening")}>
+              Continue learning <span>→</span>
             </button>
-          ))}
-        </div>
+          </div>
+        </section>
+
+        <section className="learning-glance" aria-label="Learning progress">
+          <div className="glance-intro">
+            <span className="student-kicker">Your progress</span>
+            <h2>Keep your momentum.</h2>
+          </div>
+          <div className="overview-stats student-stats">
+            <div>
+              <strong>{progressData?.overall.attempted ?? 0}</strong>
+              <span>tests attempted</span>
+            </div>
+            <div>
+              <strong>{progressData?.overall.completed ?? 0}</strong>
+              <span>tests completed</span>
+            </div>
+            <div>
+              <strong>{progressData?.overall.average ?? 0}%</strong>
+              <span>current average</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="skill-path" aria-labelledby="skill-path-title">
+          <div className="dashboard-section-head">
+            <div>
+              <span className="student-kicker">Practice path</span>
+              <h2 id="skill-path-title">Choose what to practise</h2>
+            </div>
+            <p>
+              Move between skills whenever you need. Your results stay together
+              here.
+            </p>
+          </div>
+          {isAdmin && (
+            <a
+              className="btn"
+              href="/admin"
+              style={{ marginBottom: 24, display: "inline-flex" }}
+            >
+              Open admin workspace →
+            </a>
+          )}
+          <div className="module-grid">
+            {[
+              ["Listening", "Audio comprehension", "Train your ear"],
+              ["Reading", "Text comprehension", "Read with precision"],
+              ["Writing", "Guided writing prompts", "Shape your ideas"],
+              ["Speaking", "Guided speaking prompts", "Speak with ease"],
+            ].map((item) => (
+              <button
+                className="module"
+                key={item[0]}
+                onClick={() => openModule(item[0] as ModuleName)}
+              >
+                <ModuleIcon name={item[0] as ModuleName} />
+                <b>
+                  {item[0]}{" "}
+                  {!moduleAccess[item[0].toLowerCase()]?.active && (
+                    <span aria-label="Locked" title="Module access required">
+                      🔒
+                    </span>
+                  )}
+                </b>
+                <small>{item[1]}</small>
+                <span className="module-prompt">
+                  {item[2]} <i>→</i>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="module-overviews-section" aria-label="Score trends">
+          <div className="dashboard-section-head">
+            <div>
+              <span className="student-kicker">Review</span>
+              <h2>Your score story</h2>
+            </div>
+            <p>Completed attempts reveal the areas to revisit next.</p>
+          </div>
+          <div className="module-overviews">
+            <ModuleOverview
+              name="Listening"
+              data={progressData?.modules.listening}
+              onOpen={() => openModule("Listening")}
+            />
+            <ModuleOverview
+              name="Reading"
+              data={progressData?.modules.reading}
+              onOpen={() => openModule("Reading")}
+            />
+          </div>
+        </section>
       </main>
     </div>
   );
@@ -1045,74 +1077,168 @@ export default function HomePage() {
       progressData?.modules[
         moduleName.toLowerCase() as "listening" | "reading"
       ];
+    const completed = moduleProgress?.completed ?? 0;
+    const attempted = moduleProgress?.attempted ?? 0;
+    const average = moduleProgress?.average ?? 0;
+    const activeTest =
+      moduleProgress?.tests.find((item) => item.status === "in_progress")
+        ?.testNumber ??
+      catalog.find(
+        ({ testNumber }) =>
+          !moduleProgress?.tests.some(
+            (item) =>
+              item.testNumber === testNumber && item.status === "completed",
+          ),
+      )?.testNumber ??
+      catalog[0]?.testNumber;
     return (
       <div className="shell">
         {nav()}
-        <main className="dashboard">
-          <div className="tests-head">
-            <div>
-              <div className="text-blue-600 font-semibold text-2xl mb-5">
-                {moduleName} review
-              </div>
-              <h1 className="text-4xl font-bold">{moduleName} Tests</h1>
-              <p className="text-gray-500 mt-2 text-lg font-semibold">
-                {catalog.length} available tests · all levels · immediate answer
-                feedback
+        <main className="dashboard module-library">
+          <button
+            className="library-back"
+            onClick={() => setRoute("dashboard")}
+          >
+            <span aria-hidden="true">←</span> Back to dashboard
+          </button>
+          <section className="module-journey" aria-labelledby="module-title">
+            <div className="module-journey-copy">
+              <span className="student-kicker">{moduleName} practice</span>
+              <h1 id="module-title">
+                Build your {moduleName.toLowerCase()} confidence.
+              </h1>
+              <p>
+                Short, realistic practice tests with feedback after every
+                attempt. Pick up where you left off or choose any test below.
               </p>
+              <div className="journey-metrics" aria-label="Module progress">
+                <span>
+                  <strong>{completed}</strong> completed
+                </span>
+                <span>
+                  <strong>{average}%</strong> average
+                </span>
+                <span>
+                  <strong>{catalog.length}</strong> available
+                </span>
+              </div>
             </div>
-            <button
-              className="btn secondary"
-              onClick={() => setRoute("dashboard")}
+            <aside className="next-lesson" aria-label="Next recommended test">
+              <span className="next-lesson-kicker">YOUR NEXT STEP</span>
+              <div className="next-lesson-icon">
+                <ModuleIcon name={moduleName} />
+              </div>
+              <div>
+                <small>{moduleName} test</small>
+                <strong>Test {activeTest ?? "—"}</strong>
+                <p>
+                  {completed
+                    ? "Keep your progress moving."
+                    : "Start your first practice test."}
+                </p>
+              </div>
+              <button
+                className="btn"
+                disabled={!activeTest}
+                onClick={() => activeTest && beginReview(activeTest)}
+              >
+                {attempted ? "Continue test" : "Start now"} <span>→</span>
+              </button>
+            </aside>
+          </section>
+
+          <section className="library-progress" aria-label="Progress summary">
+            <div>
+              <span className="student-kicker">Your momentum</span>
+              <h2>
+                {completed
+                  ? "You’re building a strong routine."
+                  : "Your first step starts here."}
+              </h2>
+            </div>
+            <div className="library-progress-bar" aria-hidden="true">
+              <i
+                style={{
+                  width: `${catalog.length ? (completed / catalog.length) * 100 : 0}%`,
+                }}
+              />
+            </div>
+            <p>
+              <strong>{completed}</strong> of {catalog.length} tests completed
+            </p>
+          </section>
+
+          {catalogLoading ? (
+            <section
+              className="catalog-loader"
+              role="status"
+              aria-live="polite"
             >
-              ← Dashboard
-            </button>
-          </div>
-          <ScoreChart
-            compact
-            scores={moduleProgress?.recentScores}
-            label={`${moduleName} score trend`}
-          />
-          <div className="progress-legend">
-            <span>
-              <i className="legend-completed" />{" "}
-              <p className="text-lg font-semibold text-gray-500">Completed</p>
-            </span>
-            <span>
-              <i className="legend-progress" />{" "}
-              <p className="text-lg font-semibold text-gray-500">In progress</p>
-            </span>
-            <span className="text-lg font-medium">
-              {moduleProgress?.completed ?? 0} completed ·{" "}
-              {moduleProgress?.average ?? 0}% average
-            </span>
-          </div>
-          {catalogError && <p role="alert">{catalogError}</p>}
-          {!catalogError && catalog.length === 0 && (
-            <p>No published tests are currently available.</p>
+              <div className="catalog-loader-mark" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </div>
+              <div>
+                <strong>
+                  Preparing your {moduleName.toLowerCase()} practice
+                </strong>
+                <p>Finding your available tests and saved progress…</p>
+              </div>
+            </section>
+          ) : (
+            <>
+              {catalogError && <p role="alert">{catalogError}</p>}
+              {!catalogError && catalog.length === 0 && (
+                <p>No published tests are currently available.</p>
+              )}
+              <section
+                className="test-library"
+                aria-labelledby="test-library-title"
+              >
+                <div className="test-library-head">
+                  <div>
+                    <span className="student-kicker">Practice library</span>
+                    <h2 id="test-library-title">Choose a test</h2>
+                  </div>
+                  <div
+                    className="test-status-key"
+                    aria-label="Test status legend"
+                  >
+                    <span>
+                      <i className="legend-completed" /> Completed
+                    </span>
+                    <span>
+                      <i className="legend-progress" /> In progress
+                    </span>
+                  </div>
+                </div>
+                <div className="tests-grid module-tests-grid">
+                  {catalog.map(({ testNumber }, index) => {
+                    const testProgress = moduleProgress?.tests.find(
+                      (item) => item.testNumber === testNumber,
+                    );
+                    return (
+                      <button
+                        className={`test ${testProgress?.status === "completed" ? "done" : testProgress?.status === "in_progress" ? "in-progress" : ""}`}
+                        key={index}
+                        onClick={() => beginReview(testNumber)}
+                      >
+                        <small>Test</small>
+                        {testNumber}
+                        {testProgress?.status === "completed" && (
+                          <small>✓ {testProgress.percentage}%</small>
+                        )}
+                        {testProgress?.status === "in_progress" && (
+                          <small>In progress</small>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            </>
           )}
-          <div className="tests-grid">
-            {catalog.map(({ testNumber }, index) => {
-              const testProgress = moduleProgress?.tests.find(
-                (item) => item.testNumber === testNumber,
-              );
-              return (
-                <button
-                  className={`test ${testProgress?.status === "completed" ? "done" : testProgress?.status === "in_progress" ? "in-progress" : ""}`}
-                  key={index}
-                  onClick={() => beginReview(testNumber)}
-                >
-                  <small>Test</small>
-                  {testNumber}
-                  {testProgress?.status === "completed" && (
-                    <small>✓ {testProgress.percentage}%</small>
-                  )}
-                  {testProgress?.status === "in_progress" && (
-                    <small>In progress</small>
-                  )}
-                </button>
-              );
-            })}
-          </div>
         </main>
       </div>
     );
@@ -1144,8 +1270,10 @@ export default function HomePage() {
             <div className="q-nav">
               {questions.map((_, index) => (
                 <button
-                  className={`q-dot ${index === questionIndex ? "active" : ""}`}
+                  type="button"
+                  className={`q-dot ${index === questionIndex ? "active" : ""} ${answers[index] !== undefined ? "answered" : ""}`}
                   key={index}
+                  onPointerDown={() => setQuestionIndex(index)}
                   onClick={() => setQuestionIndex(index)}
                 >
                   Q{index + 1}
@@ -1161,6 +1289,22 @@ export default function HomePage() {
                 {mode === "exam" && " · 34:42"}
               </span>
             </div>
+            <nav
+              className="reading-jump exam-jump"
+              aria-label="Jump to any question"
+            >
+              {questions.map((_, index) => (
+                <button
+                  type="button"
+                  key={index}
+                  className={`${index === questionIndex ? "current" : ""} ${answers[index] !== undefined ? "answered" : ""}`}
+                  onPointerDown={() => setQuestionIndex(index)}
+                  onClick={() => setQuestionIndex(index)}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </nav>
             <div className="prompt">
               {question.prompt.split("\n").map((line, index) => (
                 <span key={line}>
@@ -1204,13 +1348,20 @@ export default function HomePage() {
               </p>
             )}
             <div className="exam-actions">
+              <button
+                className="btn ghost"
+                disabled={questionIndex === 0}
+                onClick={() => setQuestionIndex(Math.max(0, questionIndex - 1))}
+              >
+                ← Previous
+              </button>
               <button className="btn ghost" onClick={toggleFlag}>
                 {flagged.has(questionIndex) ? "⚑ Flagged" : "⚐ Flag for review"}
               </button>
               <button className="btn" onClick={nextQuestion}>
                 {questionIndex === questions.length - 1
                   ? "Finish test"
-                  : "Confirm & next →"}
+                  : "Next question →"}
               </button>
             </div>
           </section>
@@ -1318,7 +1469,7 @@ export default function HomePage() {
 
   const views: Record<Route, React.ReactNode> = {
     home: <Home />,
-    auth: <Auth />,
+    auth: Auth(),
     dashboard: user ? <Dashboard /> : <Auth />,
     tests: <Tests />,
     exam: <Exam />,

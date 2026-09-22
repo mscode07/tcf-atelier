@@ -18,6 +18,8 @@ export const users = pgTable("app_users", {
   passwordHash: text("password_hash"),
   googleSub: text("google_sub"),
   name: text("name"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   avatarUrl: text("avatar_url"),
   phone: text("phone"),
   country: text("country"),
@@ -99,6 +101,8 @@ export const pricingPlans = pgTable("pricing_plans", {
   currency: text("currency").notNull().default("USD"),
   isActive: boolean("is_active").notNull().default(true),
   features: jsonb("features").$type<string[]>().notNull().default([]),
+  stripePriceId: text("stripe_price_id"),
+  stripeProductId: text("stripe_product_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

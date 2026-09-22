@@ -1,7 +1,8 @@
 "use client";
+import { ADMIN_PASSWORD_HELP } from "@/lib/admin/password-policy";
 import headerStyles from "./AdminHeaderActions.module.css";
 import { useState, useEffect, useRef, FormEvent } from "react";
-export default function ChangePasscode() {
+export default function ChangePassword() {
   const [open, setOpen] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -24,7 +25,7 @@ export default function ChangePasscode() {
       if (!r.ok) throw new Error(data.error);
       window.location.replace("/admin");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to change passcode.");
+      setError(e instanceof Error ? e.message : "Unable to change password.");
     } finally {
       setBusy(false);
     }
@@ -32,8 +33,8 @@ export default function ChangePasscode() {
   return (
     <>
       <button
-        className={`${headerStyles.securityButton} ${headerStyles.passcodeButton}`}
-        aria-label="Change admin passcode"
+        className={`${headerStyles.securityButton} ${headerStyles.passwordButton}`}
+        aria-label="Change admin password"
         onClick={() => {
           setError("");
           setOpen(true);
@@ -53,18 +54,18 @@ export default function ChangePasscode() {
           <circle cx="8" cy="9" r="5" />
           <path d="m12 12 8 8m-3-3 3-3m-6 0 3-3" />
         </svg>
-        <span>Change passcode</span>
+        <span>Change password</span>
       </button>
       {open && (
         <dialog
           ref={dialog}
-          className="admin-modal admin-passcode-dialog"
-          aria-labelledby="change-passcode-title"
-          aria-describedby="change-passcode-description"
+          className="admin-modal admin-password-dialog"
+          aria-labelledby="change-password-title"
+          aria-describedby="change-password-description"
           onCancel={() => setOpen(false)}
         >
           <div className="admin-modal-head">
-            <h2 id="change-passcode-title">Change admin passcode</h2>
+            <h2 id="change-password-title">Change admin password</h2>
             <button
               type="button"
               className="admin-icon-button"
@@ -74,38 +75,44 @@ export default function ChangePasscode() {
               ×
             </button>
           </div>
-          <form onSubmit={submit} className="admin-passcode-form">
+          <form onSubmit={submit} className="admin-password-form">
             <p
-              id="change-passcode-description"
-              className="admin-passcode-description"
+              id="change-password-description"
+              className="admin-password-description"
             >
-              Enter your current passcode, then choose a new four-digit code.
+              Enter your current password, then choose a new password.{" "}
+              {ADMIN_PASSWORD_HELP}
             </p>
             {[
-              ["currentPasscode", "Current passcode"],
-              ["newPasscode", "New passcode"],
-              ["confirmPasscode", "Confirm new passcode"],
+              ["currentPassword", "Current password"],
+              ["newPassword", "New password"],
+              ["confirmPassword", "Confirm new password"],
             ].map(([name, label]) => (
               <label className="admin-field" key={name}>
                 {label}
                 <input
                   name={name}
                   type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]{4}"
-                  maxLength={4}
-                  placeholder="4-digit code"
+                  minLength={name === "currentPassword" ? 1 : 8}
+                  maxLength={72}
+                  placeholder={
+                    name === "currentPassword"
+                      ? "Current password"
+                      : "New password"
+                  }
+                  autoCapitalize="none"
+                  spellCheck={false}
                   required
                   autoComplete={
-                    name === "currentPasscode"
+                    name === "currentPassword"
                       ? "current-password"
                       : "new-password"
                   }
                 />
               </label>
             ))}
-            <p className="admin-passcode-note">
-              Saving will lock all admin sessions. Use your new passcode to sign
+            <p className="admin-password-note">
+              Saving will lock all admin sessions. Use your new password to sign
               in again.
             </p>
             {error && (
@@ -113,7 +120,7 @@ export default function ChangePasscode() {
                 {error}
               </p>
             )}
-            <div className="admin-passcode-actions">
+            <div className="admin-password-actions">
               <button
                 type="button"
                 className="admin-button"
@@ -122,7 +129,7 @@ export default function ChangePasscode() {
                 Cancel
               </button>
               <button className="admin-button primary" disabled={busy}>
-                {busy ? "Saving…" : "Save passcode"}
+                {busy ? "Saving…" : "Save password"}
               </button>
             </div>
           </form>

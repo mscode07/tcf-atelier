@@ -22,6 +22,36 @@ export async function publishedContent(module: ModuleKey) {
     )
     .orderBy(materialContent.testNumber);
 }
+export async function publishedCatalog(module: ModuleKey) {
+  return getDb()
+    .select({
+      testNumber: materialContent.testNumber,
+      title: materialContent.title,
+      questionCount: sql<number>`coalesce(jsonb_array_length(${materialContent.questions}), 0)::integer`,
+    })
+    .from(materialContent)
+    .where(
+      and(
+        eq(materialContent.module, module),
+        eq(materialContent.status, "published"),
+      ),
+    )
+    .orderBy(materialContent.testNumber);
+}
+export async function publishedTest(module: ModuleKey, testNumber: number) {
+  const [test] = await getDb()
+    .select()
+    .from(materialContent)
+    .where(
+      and(
+        eq(materialContent.module, module),
+        eq(materialContent.testNumber, testNumber),
+        eq(materialContent.status, "published"),
+      ),
+    )
+    .limit(1);
+  return test ?? null;
+}
 export async function saveTests(
   actorId: string,
   tests: MaterialTest[],

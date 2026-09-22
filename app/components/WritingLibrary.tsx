@@ -15,6 +15,10 @@ type WritingQuestion = {
   document2: string;
   variantCount: number;
 };
+type WritingSummary = Pick<
+  WritingQuestion,
+  "id" | "taskType" | "topic" | "broadCategory" | "topicHeading"
+>;
 
 export default function WritingLibrary({
   onBack,
@@ -23,7 +27,12 @@ export default function WritingLibrary({
   onBack: () => void;
   nav: (minimal?: boolean) => React.ReactNode;
 }) {
-  const [questions, setQuestions] = useState<WritingQuestion[]>([]);
+  const [questions, setQuestions] = useState<WritingSummary[]>([]);
+  const [details, setDetails] = useState<Record<string, WritingQuestion>>({});
+  const [total, setTotal] = useState(0);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [taskCounts, setTaskCounts] = useState<Record<string, number>>({});
+  const [loadingMore, setLoadingMore] = useState(false);
   const [task, setTask] = useState<"all" | WritingQuestion["taskType"]>("all");
   const [category, setCategory] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -31,34 +40,42 @@ export default function WritingLibrary({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [showAnswers, setShowAnswers] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetch("/api/materials/writing", { cache: "no-store" })
+  const loadQuestions = (offset: number, replace = false) => {
+    setLoadingMore(true);
+    const params = new URLSearchParams({
+      limit: "12",
+      offset: String(offset),
+      task,
+      category,
+    });
+    fetch(`/api/materials/writing?${params}`)
       .then((response) => {
         if (!response.ok)
           throw new Error("Writing prompts could not be loaded");
         return response.json();
       })
-      .then((data: { questions: WritingQuestion[] }) =>
-        setQuestions(data.questions),
-      )
+      .then((data: { questions: WritingSummary[]; total: number; categories: string[]; taskCounts: Record<string, number> }) => {
+        setQuestions((current) => replace ? data.questions : [...current, ...data.questions]);
+        setTotal(data.total);
+        setCategories(data.categories);
+        setTaskCounts(data.taskCounts);
+      })
       .catch(() => {
         window.location.href = "/?access=subscription_required";
-      });
+      })
+      .finally(() => setLoadingMore(false));
+  };
+  useEffect(() => {
+    void loadQuestions(0, true);
+  }, [task, category]);
+  useEffect(() => {
     try {
       setDrafts(JSON.parse(localStorage.getItem("tcf-writing-drafts") || "{}"));
     } catch {
       setDrafts({});
     }
   }, []);
-
-  const categories = Array.from(
-    new Set(questions.map((item) => item.broadCategory)),
-  ).sort();
-  const filtered = questions.filter(
-    (item) =>
-      (task === "all" || item.taskType === task) &&
-      (category === "all" || item.broadCategory === category),
-  );
+  const filtered = questions;
   const chooseTask = (next: typeof task) => {
     setTask(next);
     setVisible(12);
@@ -115,8 +132,8 @@ export default function WritingLibrary({
                   {value === "all" ? "All tasks" : `Task ${taskNumber(value)}`}
                   <span>
                     {value === "all"
-                      ? questions.length
-                      : questions.filter((q) => q.taskType === value).length}
+                      ? taskCounts.all ?? Object.values(taskCounts).reduce((sum, count) => sum + count, 0)
+                      : taskCounts[value] ?? 0}
                   </span>
                 </button>
               ),
@@ -140,14 +157,20 @@ export default function WritingLibrary({
           </label>
         </section>
 
-        {!questions.length ? (
-          <div className="writing-empty">Loading writing prompts…</div>
+        {loadingMore && !questions.length ? (
+          <section className="catalog-loader library-loader" role="status" aria-live="polite">
+            <div className="catalog-loader-mark" aria-hidden="true"><i /><i /><i /></div>
+            <div><strong>Preparing your writing practice</strong><p>Loading your first set of prompts…</p></div>
+          </section>
+        ) : !questions.length ? (
+          <div className="writing-empty">No writing prompts are currently available.</div>
         ) : !filtered.length ? (
           <div className="writing-empty">No prompts match this selection.</div>
         ) : (
           <section className="writing-list" aria-live="polite">
-            {filtered.slice(0, visible).map((item) => {
+            {filtered.map((item) => {
               const isOpen = openId === item.id;
+              const detail = details[item.id];
               const draft = drafts[item.id] || "";
               const wordCount = draft.trim()
                 ? draft.trim().split(/\s+/).length
@@ -159,7 +182,15 @@ export default function WritingLibrary({
                 >
                   <button
                     className="writing-card-head"
-                    onClick={() => setOpenId(isOpen ? null : item.id)}
+                    onClick={() => {
+                      setOpenId(isOpen ? null : item.id);
+                      if (!isOpen && !detail)
+                        void fetch(`/api/materials/writing?id=${encodeURIComponent(item.id)}`)
+                          .then((response) => response.ok ? response.json() : Promise.reject())
+                          .then((data: { question: WritingQuestion }) =>
+                            setDetails((current) => ({ ...current, [item.id]: data.question })),
+                          );
+                    }}
                     aria-expanded={isOpen}
                   >
                     <div>
@@ -172,11 +203,7 @@ export default function WritingLibrary({
                         <span>{item.broadCategory}</span>
                       </div>
                       <h2>{item.topicHeading || item.topic}</h2>
-                      <p>
-                        {item.taskType === "tache_3"
-                          ? item.document1
-                          : item.prompt}
-                      </p>
+                      <p>Open this prompt to view the full task and model answer.</p>
                     </div>
                     <span className="writing-toggle" aria-hidden="true">
                       {isOpen ? "−" : "+"}
@@ -184,24 +211,24 @@ export default function WritingLibrary({
                   </button>
                   {isOpen && (
                     <div className="writing-practice">
-                      {item.taskType === "tache_3" ? (
+                      {!detail ? <p className="writing-empty">Loading prompt…</p> : detail.taskType === "tache_3" ? (
                         <div className="writing-documents">
                           <article>
                             <span>Document 1</span>
-                            <p>{item.document1}</p>
+                            <p>{detail.document1}</p>
                           </article>
                           <article>
                             <span>Document 2</span>
-                            <p>{item.document2}</p>
+                            <p>{detail.document2}</p>
                           </article>
                         </div>
                       ) : (
                         <div className="writing-instruction">
                           <span>French instruction</span>
-                          <p>{item.prompt}</p>
+                          <p>{detail.prompt}</p>
                         </div>
                       )}
-                      <div className="writing-answer-label">
+                      {detail && <><div className="writing-answer-label">
                         <label htmlFor={`draft-${item.id}`}>
                           Your response
                         </label>
@@ -231,29 +258,30 @@ export default function WritingLibrary({
                           ? "Hide model answer"
                           : "Show model answer"}
                       </button>
-                      {item.audioUrl && (
-                        <audio controls preload="none" src={item.audioUrl} />
+                      {detail.audioUrl && (
+                        <audio controls preload="none" src={detail.audioUrl} />
                       )}
                       {showAnswers.has(item.id) && (
                         <div className="writing-model">
                           <span>Model answer</span>
                           <p>
-                            {item.correction ||
+                            {detail.correction ||
                               "Model answer coming soon for this prompt."}
                           </p>
                         </div>
-                      )}
+                      )}</>}
                     </div>
                   )}
                 </article>
               );
             })}
-            {visible < filtered.length && (
+            {questions.length < total && (
               <button
                 className="btn secondary writing-load"
-                onClick={() => setVisible((count) => count + 12)}
+                disabled={loadingMore}
+                onClick={() => loadQuestions(questions.length)}
               >
-                Load 12 more
+                {loadingMore ? "Loading…" : "Load 12 more"}
               </button>
             )}
           </section>

@@ -62,8 +62,12 @@ export default function ReadingTestClient({
         const response = await fetch(`/api/access?module=${module}`, {
           cache: "no-store",
         });
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           window.location.replace("/?access=signin_required");
+          return;
+        }
+        if (response.status === 403) {
+          window.location.replace("/?access=subscription_required");
           return;
         }
         if (response.ok) {
@@ -71,7 +75,7 @@ export default function ReadingTestClient({
             active?: boolean;
             watermark?: string;
           };
-          if (!access.active)
+          if (access.active === false)
             window.location.replace("/?access=subscription_required");
           if (access.watermark) setWatermarkIdentity(access.watermark);
         }
@@ -80,7 +84,7 @@ export default function ReadingTestClient({
       }
     };
     void validateAccess();
-    const timer = window.setInterval(() => void validateAccess(), 30_000);
+    const timer = window.setInterval(() => void validateAccess(), 120_000);
     const onVisibilityChange = () => {
       if (!document.hidden) void validateAccess();
     };
@@ -179,8 +183,8 @@ export default function ReadingTestClient({
 
   const checkAnswer = () => {
     setChecked((previous) => new Set(previous).add(current));
-    if (mode === "exam") goNext();
   };
+  const goPrevious = () => setCurrent((index) => Math.max(0, index - 1));
   const finishTest = async () => {
     const response = await fetch("/api/progress", {
       method: "POST",
@@ -300,7 +304,12 @@ export default function ReadingTestClient({
           {questions.map((item, index) => (
             <button
               key={item.number}
+              type="button"
               className={`${index === current ? "current" : ""} ${answers[index] !== undefined ? "answered" : ""}`}
+              onPointerDown={() => {
+                setCurrent(index);
+                setSidebarOpen(false);
+              }}
               onClick={() => {
                 setCurrent(index);
                 setSidebarOpen(false);
@@ -338,6 +347,19 @@ export default function ReadingTestClient({
             </Link>
           </div>
         </header>
+        <nav className="reading-jump" aria-label="Jump to any question">
+          {questions.map((item, index) => (
+            <button
+              key={item.number}
+              type="button"
+              className={`${index === current ? "current" : ""} ${answers[index] !== undefined ? "answered" : ""}`}
+              onPointerDown={() => setCurrent(index)}
+              onClick={() => setCurrent(index)}
+            >
+              {item.number}
+            </button>
+          ))}
+        </nav>
         <section className="reading-content">
           <div className="reading-meta">
             <span
@@ -385,7 +407,12 @@ export default function ReadingTestClient({
                 <button
                   key={index}
                   className={state}
-                  disabled={isChecked}
+                  onPointerDown={() =>
+                    setAnswers((previous) => ({
+                      ...previous,
+                      [current]: index,
+                    }))
+                  }
                   onClick={() =>
                     setAnswers((previous) => ({
                       ...previous,
@@ -409,25 +436,29 @@ export default function ReadingTestClient({
             </p>
           )}
           {isChecked && question.explanation && <p>{question.explanation}</p>}
-          {!isChecked ? (
+          <div className="exam-actions reading-nav-actions">
             <button
-              className="btn reading-check"
-              disabled={selected === undefined}
-              onClick={checkAnswer}
+              className="btn ghost"
+              disabled={current === 0}
+              onClick={goPrevious}
             >
-              {mode === "exam"
-                ? current === questions.length - 1
-                  ? "Finish test"
-                  : "Confirm & next →"
-                : "Check answer"}
+              ← Previous
             </button>
-          ) : (
+            {!isChecked ? (
+              <button
+                className="btn reading-check"
+                disabled={selected === undefined}
+                onClick={checkAnswer}
+              >
+                Check answer
+              </button>
+            ) : null}
             <button className="btn reading-check" onClick={goNext}>
               {current === questions.length - 1
                 ? "View results"
                 : "Next question →"}
             </button>
-          )}
+          </div>
         </section>
       </main>
     </div>

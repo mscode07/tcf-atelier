@@ -8,41 +8,108 @@ import {
 import { evaluateAccess } from "../lib/admin/access-policy";
 import { legacyContent } from "../lib/admin/legacy";
 import { MODULES } from "../lib/admin/types";
-import { checkPasscode, createAdminSession, verifyAdminSession, SESSION_SECONDS } from "../lib/admin/passcode";
+import {
+  checkAdminPassword,
+  createAdminSession,
+  verifyAdminSession,
+  SESSION_SECONDS,
+} from "../lib/admin/password";
+import {
+  isStrongAdminPassword,
+  isAdminPasswordInput,
+} from "../lib/admin/password-policy";
 import { limitedLogin } from "../lib/admin/login-limit";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-test("passcode sessions reject incorrect codes, tampering, expiry and rotated secrets", () => {
-  const previousPin = process.env.ADMIN_PASSCODE;
+test("password sessions reject incorrect passwords, tampering, expiry and rotated secrets", () => {
+  const previousPassword = process.env.ADMIN_PASSWORD;
   const previousSecret = process.env.ADMIN_SESSION_SECRET;
   try {
-    process.env.ADMIN_PASSCODE = "0286";
+    process.env.ADMIN_PASSWORD = "Example@124";
     process.env.ADMIN_SESSION_SECRET = "test-only-secret".repeat(4);
-    assert.equal(checkPasscode("0286"), true);
-    assert.equal(checkPasscode("286"), false);
-    assert.equal(checkPasscode("1111"), false);
-    assert.equal(checkPasscode(286), false);
+    assert.equal(checkAdminPassword("Example@124"), true);
+    assert.equal(checkAdminPassword("example@124"), false);
+    assert.equal(checkAdminPassword("Example@124 "), false);
+    assert.equal(checkAdminPassword("1234"), false);
+    assert.equal(checkAdminPassword(124), false);
     const now = Date.now();
     const token = createAdminSession(now);
     assert.equal(verifyAdminSession(token, now), true);
     assert.equal(verifyAdminSession(token + "x", now), false);
     assert.equal(verifyAdminSession(undefined, now), false);
-    assert.equal(verifyAdminSession(token, now + SESSION_SECONDS * 1000), false);
-    process.env.ADMIN_PASSCODE = "1234";
+    assert.equal(
+      verifyAdminSession(token, now + SESSION_SECONDS * 1000),
+      false,
+    );
+    process.env.ADMIN_SESSION_SECRET = "rotated-test-secret".repeat(4);
     assert.equal(verifyAdminSession(token, now), false);
   } finally {
-    if (previousPin === undefined) delete process.env.ADMIN_PASSCODE; else process.env.ADMIN_PASSCODE = previousPin;
-    if (previousSecret === undefined) delete process.env.ADMIN_SESSION_SECRET; else process.env.ADMIN_SESSION_SECRET = previousSecret;
+    if (previousPassword === undefined) delete process.env.ADMIN_PASSWORD;
+    else process.env.ADMIN_PASSWORD = previousPassword;
+    if (previousSecret === undefined) delete process.env.ADMIN_SESSION_SECRET;
+    else process.env.ADMIN_SESSION_SECRET = previousSecret;
   }
 });
-test("ten wrong passcodes cause a persistent lockout which expires after fifteen minutes", async () => {
+test("new admin passwords require mixed characters and respect bcrypt byte limits", () => {
+  assert.equal(isStrongAdminPassword("Password@124"), true);
+  assert.equal(isStrongAdminPassword("Mixed #Words 124"), true);
+  for (const value of [
+    null,
+    1234,
+    "1234",
+    "lowercase@123",
+    "UPPERCASE@123",
+    "NoNumbers@",
+    "NoSymbols123",
+    "Aa1!" + "é".repeat(35),
+  ]) {
+    assert.equal(isStrongAdminPassword(value), false);
+  }
+  assert.equal(isStrongAdminPassword("Aa1!" + "x".repeat(68)), true);
+  assert.equal(isAdminPasswordInput("Aa1!" + "x".repeat(69)), false);
+});
+test("legacy PIN fallback supports migration but ADMIN_PASSWORD takes precedence", () => {
+  const previous = {
+    password: process.env.ADMIN_PASSWORD,
+    pin: process.env.ADMIN_PASSCODE,
+    secret: process.env.ADMIN_SESSION_SECRET,
+  };
+  try {
+    delete process.env.ADMIN_PASSWORD;
+    process.env.ADMIN_PASSCODE = "0286";
+    process.env.ADMIN_SESSION_SECRET = "test-only-secret".repeat(4);
+    assert.equal(checkAdminPassword("0286"), true);
+    process.env.ADMIN_PASSWORD = "NewPassword@124";
+    assert.equal(checkAdminPassword("0286"), false);
+    assert.equal(checkAdminPassword("NewPassword@124"), true);
+    process.env.ADMIN_PASSWORD = "1234";
+    assert.equal(checkAdminPassword("1234"), false);
+  } finally {
+    for (const [key, value] of Object.entries({
+      ADMIN_PASSWORD: previous.password,
+      ADMIN_PASSCODE: previous.pin,
+      ADMIN_SESSION_SECRET: previous.secret,
+    })) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+test("ten wrong passwords cause a persistent lockout which expires after fifteen minutes", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "tcf-pin-test-"));
   const now = Date.now();
-  for (let i = 0; i < 10; i++) assert.equal(await limitedLogin(() => false, directory, now), false);
-  await assert.rejects(limitedLogin(() => true, directory, now), /Too many/);
-  assert.equal(await limitedLogin(() => true, directory, now + 15 * 60 * 1000), true);
+  for (let i = 0; i < 10; i++)
+    assert.equal(await limitedLogin(() => false, directory, now), false);
+  await assert.rejects(
+    limitedLogin(() => true, directory, now),
+    /Too many/,
+  );
+  assert.equal(
+    await limitedLogin(() => true, directory, now + 15 * 60 * 1000),
+    true,
+  );
 });
 const now = new Date("2026-09-08T12:00:00Z");
 const future = new Date(now.getTime() + 3600000);
@@ -224,17 +291,57 @@ test("content transactions retain revisions, reject stale edits, and roll back e
     for (const entry of journal.entries)
       await client.exec(await readFile(`drizzle/${entry.tag}.sql`, "utf8"));
     const db = drizzle(client, { schema });
-    const { validSession, sessionHash, checkStoredPasscode } = await import("../lib/admin/session-store");
+    const {
+      validSession,
+      sessionHash,
+      checkStoredPassword,
+      replaceAdminPassword,
+    } = await import("../lib/admin/session-store");
     const { hash } = await import("bcryptjs");
-    const sessionDb = db as unknown as ReturnType<typeof import("../lib/db").getDb>;
+    const sessionDb = db as unknown as ReturnType<
+      typeof import("../lib/db").getDb
+    >;
     const sessionToken = "test-session-token";
-    await db.insert(schema.adminSessions).values({ tokenHash: sessionHash(sessionToken), expiresAt: future });
+    await db
+      .insert(schema.adminSessions)
+      .values({ tokenHash: sessionHash(sessionToken), expiresAt: future });
     assert.equal(await validSession(sessionToken, sessionDb, now), true);
     assert.equal(await validSession("wrong-token", sessionDb, now), false);
     assert.equal(await validSession(sessionToken, sessionDb, future), false);
-    await db.insert(schema.adminSettings).values({ id: "main", passcodeHash: await hash("9876", 4) });
-    assert.equal(await checkStoredPasscode("9876", sessionDb), true);
-    assert.equal(await checkStoredPasscode("1234", sessionDb), false);
+    await db
+      .insert(schema.adminSettings)
+      .values({ id: "main", passcodeHash: await hash("9876", 4) });
+    assert.equal(await checkStoredPassword("9876", sessionDb), true);
+    assert.equal(await checkStoredPassword("1234", sessionDb), false);
+    await assert.rejects(replaceAdminPassword("1234", sessionDb), /at least 8/);
+    assert.equal(
+      await validSession(sessionToken, sessionDb, now),
+      true,
+      "invalid new password must not revoke sessions",
+    );
+    await replaceAdminPassword("NewPassword@124", sessionDb);
+    assert.equal(await checkStoredPassword("NewPassword@124", sessionDb), true);
+    assert.equal(
+      await checkStoredPassword("newpassword@124", sessionDb),
+      false,
+    );
+    assert.equal(
+      await checkStoredPassword("9876", sessionDb),
+      false,
+      "old PIN must stop working",
+    );
+    assert.equal(
+      await validSession(sessionToken, sessionDb, now),
+      false,
+      "changing the password revokes all sessions",
+    );
+    const [passwordSetting] = await db.select().from(schema.adminSettings);
+    assert.notEqual(
+      passwordSetting.passcodeHash,
+      "NewPassword@124",
+      "only a hash is stored",
+    );
+
     const { storeAdminSession } = await import("../lib/admin/session-store");
     const { adminSummary } = await import("../lib/admin/summary");
     const emptySummary = await adminSummary(sessionDb);
@@ -243,8 +350,16 @@ test("content transactions retain revisions, reject stale edits, and roll back e
     await storeAdminSession("second-login", sessionDb);
     assert.equal(await validSession("first-login", sessionDb), true);
     assert.equal(await validSession("second-login", sessionDb), true);
-    assert.equal((await db.select().from(schema.users)).length, 1, "repeat logins reuse the admin actor");
-    await assert.rejects(storeAdminSession("second-login", sessionDb), (error: unknown) => (error as { cause?: { code?: string } }).cause?.code === "23505");
+    assert.equal(
+      (await db.select().from(schema.users)).length,
+      1,
+      "repeat logins reuse the admin actor",
+    );
+    await assert.rejects(
+      storeAdminSession("second-login", sessionDb),
+      (error: unknown) =>
+        (error as { cause?: { code?: string } }).cause?.code === "23505",
+    );
     await db.delete(schema.adminSessions);
     assert.equal(await validSession(sessionToken, sessionDb, now), false);
     const [admin] = await db
@@ -350,13 +465,17 @@ test("content transactions retain revisions, reject stale edits, and roll back e
       "archived",
     );
     assert.equal((await db.select().from(schema.adminActivity)).length, 4);
-    await db.insert(schema.users).values({ email: "student@summary.test", role: "student" });
+    await db
+      .insert(schema.users)
+      .values({ email: "student@summary.test", role: "student" });
     const summary = await adminSummary(sessionDb);
     assert.equal(summary.activity.length, 4);
     assert.equal(summary.activity[0].actor, "admin@test.invalid");
     assert.ok(!Number.isNaN(Date.parse(summary.activity[0].createdAt)));
     assert.deepEqual(summary.students, [{ status: "active", count: 1 }]);
-    assert.deepEqual(summary.content, [{ module: "reading", status: "archived", count: 1 }]);
+    assert.deepEqual(summary.content, [
+      { module: "reading", status: "archived", count: 1 },
+    ]);
   } finally {
     await client.close();
   }
@@ -371,8 +490,12 @@ test("audio validation recognizes supported headers and rejects renamed document
   assert.equal(audioMime(Buffer.from("<script>bad</script>")), null);
   assert.equal(audioMime(Buffer.alloc(0)), null);
 });
-test("asynchronous incorrect passcodes count toward rate limiting", async () => {
+test("asynchronous incorrect passwords count toward rate limiting", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "tcf-async-pin-"));
-  for (let i = 0; i < 10; i++) assert.equal(await limitedLogin(async () => false, directory), false);
-  await assert.rejects(limitedLogin(async () => true, directory), /Too many/);
+  for (let i = 0; i < 10; i++)
+    assert.equal(await limitedLogin(async () => false, directory), false);
+  await assert.rejects(
+    limitedLogin(async () => true, directory),
+    /Too many/,
+  );
 });

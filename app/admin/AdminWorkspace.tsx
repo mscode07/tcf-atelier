@@ -1,6 +1,6 @@
 "use client";
 import headerStyles from "./AdminHeaderActions.module.css";
-import ChangePasscode from "./ChangePasscode";
+import ChangePassword from "./ChangePassword";
 import AudioUpload from "./AudioUpload";
 import {
   ChangeEvent,
@@ -22,7 +22,7 @@ import {
 } from "@/lib/admin/types";
 import { questionIssues } from "@/lib/admin/import";
 
-type Section = "overview" | "students" | "payments" | "content" | "imports" | "activity";
+type Section = "overview" | "students" | "payments" | "content" | "imports" | "activity" | "pricing";
 type Activity = {
   id: string;
   action: string;
@@ -54,21 +54,11 @@ const dateTime = (s: string | null) =>
         minute: "2-digit",
       })
     : "Lifetime";
-const CATALOG_CURRENCY = "USD";
 const money = (amountMinor: number, currency: string) =>
   new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: currency.toUpperCase(),
   }).format(amountMinor / 100);
-const paymentTotalFor = (
-  totals: { currency: string; amountMinor: number; count: number }[],
-  currency: string,
-) =>
-  totals.find((total) => total.currency.toUpperCase() === currency) ?? {
-    currency,
-    amountMinor: 0,
-    count: 0,
-  };
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
     overview: (
@@ -156,6 +146,12 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
     trash: (
       <>
         <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+      </>
+    ),
+    pricing: (
+      <>
+        <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.176-6.176a2.426 2.426 0 0 0 0-3.42z" />
+        <circle cx="7.5" cy="7.5" r="1.5" />
       </>
     ),
   };
@@ -299,10 +295,23 @@ export default function AdminWorkspace({ name }: { name: string }) {
     email: string;
     planName: string | null;
   }[]>([]);
-  const [paymentTotals, setPaymentTotals] = useState<
-    { currency: string; amountMinor: number; count: number }[]
-  >([]);
   const [payingStudentCount, setPayingStudentCount] = useState(0);
+  const [stripeOverview, setStripeOverview] = useState<{
+    mode: "live" | "test";
+    dashboardUrl: string;
+    available: { amountMinor: number; currency: string }[];
+    pending: { amountMinor: number; currency: string }[];
+    charges: {
+      id: string;
+      amountMinor: number;
+      currency: string;
+      status: string;
+      email: string | null;
+      createdAt: string;
+      dashboardUrl: string;
+    }[];
+  } | null>(null);
+  const [stripeOverviewError, setStripeOverviewError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -310,6 +319,26 @@ export default function AdminWorkspace({ name }: { name: string }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [studentPayer, setStudentPayer] = useState("all");
+  const [studentPlan, setStudentPlan] = useState("all");
+  const [studentPlans, setStudentPlans] = useState<{ name: string }[]>([]);
+  const [studentTotals, setStudentTotals] = useState({
+    total: 0,
+    active: 0,
+    withPlan: 0,
+    paying: 0,
+  });
+  const [pricingPlans, setPricingPlans] = useState<
+    {
+      code: string;
+      name: string;
+      durationDays: number;
+      priceMinor: number;
+      currency: string;
+      stripePriceId: string | null;
+      updatedAt: string;
+    }[]
+  >([]);
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [paymentStatus, setPaymentStatus] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editor, setEditor] = useState<MaterialTest | null>(null);
@@ -349,6 +378,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
     setSearch("");
     setStatus("all");
     setStudentPayer("all");
+    setStudentPlan("all");
     setPaymentStatus("all");
     setSelected(new Set());
     setError("");
@@ -373,6 +403,31 @@ export default function AdminWorkspace({ name }: { name: string }) {
   const refreshTests = async () => {
     setTests((await api(`/api/admin/content?module=${module}`)).tests);
   };
+  const refreshPricing = async () => {
+    setPricingPlans((await api("/api/admin/pricing")).plans);
+  };
+  const submitPrice = (plan: (typeof pricingPlans)[number]) => {
+    const dollars = Number(priceDrafts[plan.code]);
+    if (!Number.isFinite(dollars) || dollars <= 0) {
+      setError("Enter a valid price.");
+      return;
+    }
+    const amountMinor = Math.round(dollars * 100);
+    setConfirm({
+      title: `Update the ${plan.name} price?`,
+      detail: `This changes the live Stripe price to ${money(amountMinor, plan.currency)}. Students with existing access are not affected.`,
+      run: async () => {
+        await api("/api/admin/pricing", { code: plan.code, amountMinor });
+        await refreshPricing();
+        setPriceDrafts((d) => {
+          const next = { ...d };
+          delete next[plan.code];
+          return next;
+        });
+        setNotice(`${plan.name} price updated.`);
+      },
+    });
+  };
   useEffect(() => {
     let gone = false;
     setLoading(true);
@@ -383,16 +438,22 @@ export default function AdminWorkspace({ name }: { name: string }) {
         const d = await api("/api/admin/activity");
         if (!gone) setSummary(d);
       }
+      if (section === "pricing") {
+        const p = await api("/api/admin/pricing");
+        if (!gone) setPricingPlans(p.plans);
+      }
       if (section === "content" || section === "imports") {
         const d = await api(`/api/admin/content?module=${module}`);
         if (!gone) setTests(d.tests);
       }
       if (section === "students") {
         const d = await api(
-          `/api/admin/students?q=${encodeURIComponent(search)}&payer=${studentPayer}&offset=${offset}`,
+          `/api/admin/students?q=${encodeURIComponent(search)}&payer=${studentPayer}&plan=${encodeURIComponent(studentPlan)}&offset=${offset}`,
         );
         if (!gone) {
           setStudents(d.students);
+          setStudentPlans(d.plans);
+          setStudentTotals(d.totals);
           setHasMore(d.hasMore);
         }
       }
@@ -402,7 +463,6 @@ export default function AdminWorkspace({ name }: { name: string }) {
         );
         if (!gone) {
           setTransactions(d.transactions);
-          setPaymentTotals(d.totals);
           setPayingStudentCount(d.payingStudents);
           setHasMore(d.hasMore);
         }
@@ -423,7 +483,25 @@ export default function AdminWorkspace({ name }: { name: string }) {
       gone = true;
       clearTimeout(timer);
     };
-  }, [section, module, search, offset, studentPayer, paymentStatus]);
+  }, [section, module, search, offset, studentPayer, studentPlan, paymentStatus]);
+  useEffect(() => {
+    if (section !== "payments") return;
+    let gone = false;
+    setStripeOverviewError("");
+    api("/api/admin/stripe-overview")
+      .then((d) => {
+        if (!gone) setStripeOverview(d);
+      })
+      .catch((e) => {
+        if (!gone)
+          setStripeOverviewError(
+            e instanceof Error ? e.message : "Live Stripe data unavailable.",
+          );
+      });
+    return () => {
+      gone = true;
+    };
+  }, [section]);
   useEffect(() => {
     const verify = async () => {
       try {
@@ -589,7 +667,6 @@ export default function AdminWorkspace({ name }: { name: string }) {
     URL.revokeObjectURL(url);
   };
   const totalStudents = summary.students.reduce((s, r) => s + r.count, 0);
-  const catalogPayments = paymentTotalFor(paymentTotals, CATALOG_CURRENCY);
   const published = summary.content
     .filter((r) => r.status === "published")
     .reduce((s, r) => s + r.count, 0);
@@ -679,6 +756,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
               ["content", "Content library"],
               ["imports", "Import materials"],
               ["activity", "Activity history"],
+              ["pricing", "Pricing"],
             ] as [Section, string][]
           ).map(([key, title]) => (
             <button
@@ -732,6 +810,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
                   content: "Content library",
                   imports: "Import materials",
                   activity: "Activity history",
+                  pricing: "Pricing",
                 }[section]
               }
             </strong>
@@ -745,7 +824,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
               {name.slice(0, 1).toUpperCase()}
             </span>
             <div className={headerStyles.securityActions}>
-              <ChangePasscode />
+              <ChangePassword />
               <button
                 className={`${headerStyles.securityButton} ${headerStyles.lockButton}`}
                 disabled={busy}
@@ -979,8 +1058,8 @@ export default function AdminWorkspace({ name }: { name: string }) {
                   </p>
                   <h1>Content library</h1>
                   <p>
-                    One question or an entire collection. Make every update
-                    count.
+                    Add or edit questions any day. Publish a test and students
+                    see it immediately.
                   </p>
                 </div>
                 <div className="admin-actions">
@@ -1417,8 +1496,47 @@ export default function AdminWorkspace({ name }: { name: string }) {
                   <Icon name="lock" size={16} /> Module-level control
                 </span>
               </div>
+              <div className="admin-stat-grid">
+                {[
+                  [
+                    "Registered students",
+                    studentTotals.total,
+                    "students",
+                    "Everyone who has created an account",
+                  ],
+                  [
+                    "Active accounts",
+                    studentTotals.active,
+                    "check",
+                    "Not suspended or deleted",
+                  ],
+                  [
+                    "Currently unlocked",
+                    studentTotals.withPlan,
+                    "lock",
+                    "Have an active plan or granted access",
+                  ],
+                  [
+                    "Paying students",
+                    studentTotals.paying,
+                    "payments",
+                    "At least one successful payment",
+                  ],
+                ].map(([title, value, icon, caption], i) => (
+                  <div className="admin-stat" key={String(title)}>
+                    <div>
+                      <span>{title}</span>
+                      <span className={`admin-stat-icon tone-${i}`}>
+                        <Icon name={String(icon)} />
+                      </span>
+                    </div>
+                    <strong>{loading ? "—" : value}</strong>
+                    <small>{caption}</small>
+                  </div>
+                ))}
+              </div>
               <section className="admin-panel">
-                <div className="admin-library-toolbar">
+                <div className="admin-library-toolbar admin-students-toolbar">
                   <label className="admin-search">
                     <Icon name="search" />
                     <input
@@ -1446,6 +1564,24 @@ export default function AdminWorkspace({ name }: { name: string }) {
                       <option value="unpaid">Unpaid students</option>
                     </select>
                   </label>
+                  <label className="admin-filter">
+                    <span>Plan</span>
+                    <select
+                      aria-label="Filter students by plan"
+                      value={studentPlan}
+                      onChange={(e) => {
+                        setStudentPlan(e.target.value);
+                        setOffset(0);
+                      }}
+                    >
+                      <option value="all">All plans</option>
+                      <option value="active">Any active plan</option>
+                      <option value="none">No active plan</option>
+                      {studentPlans.map((plan) => (
+                        <option key={plan.name} value={`name:${plan.name}`}>{plan.name}</option>
+                      ))}
+                    </select>
+                  </label>
                   <span className="admin-muted">Newest students first</span>
                 </div>
                 <div className="admin-table-scroll">
@@ -1456,6 +1592,7 @@ export default function AdminWorkspace({ name }: { name: string }) {
                         <th>STUDENT</th>
                         <th>JOINED</th>
                         <th>LAST SIGN-IN</th>
+                        <th>PLAN</th>
                         <th>STATUS</th>
                         <th>ACCESS</th>
                       </tr>
@@ -1478,6 +1615,17 @@ export default function AdminWorkspace({ name }: { name: string }) {
                           </td>
                           <td>{date(s.createdAt)}</td>
                           <td>{date(s.lastLoginAt)}</td>
+                          <td>
+                            <span
+                              className={`admin-badge ${s.planActive ? "published" : "archived"}`}
+                            >
+                              {s.planActive
+                                ? s.planExpiresAt
+                                  ? `${s.planName || "Active"} · ${date(s.planExpiresAt)}`
+                                  : s.planName || "Active"
+                                : "No plan"}
+                            </span>
+                          </td>
                           <td>
                             <span
                               className={`admin-badge ${s.status === "active" ? "published" : "archived"}`}
@@ -1504,13 +1652,14 @@ export default function AdminWorkspace({ name }: { name: string }) {
                     <h3>
                       {loading
                         ? "Loading students…"
-                        : search
+                        : search || studentPayer !== "all" || studentPlan !== "all"
                           ? "No matching students"
                           : "Your community starts here"}
                     </h3>
                     <p>
-                      Registered students appear here automatically. Search by
-                      name or email to manage their access.
+                      {search || studentPayer !== "all" || studentPlan !== "all"
+                        ? "Try changing the search, payment, or plan filter."
+                        : "Registered students appear here automatically. Search by name or email to manage their access."}
                     </p>
                   </div>
                 )}
@@ -1546,28 +1695,135 @@ export default function AdminWorkspace({ name }: { name: string }) {
               <div className="admin-page-heading">
                 <div>
                   <p className="admin-eyebrow">REVENUE & TRANSACTIONS</p>
-                  <h1>Payments</h1>
-                  <p>See every transaction and the students who have paid.</p>
+                  <div className="admin-heading-row">
+                    <h1>Payments</h1>
+                    {stripeOverview && (
+                      <span
+                        className={`admin-mode-pill ${stripeOverview.mode}`}
+                      >
+                        {stripeOverview.mode === "live"
+                          ? "Live mode"
+                          : "Test mode"}
+                      </span>
+                    )}
+                  </div>
+                  <p>
+                    Live from your Stripe account, plus every transaction
+                    linked to a student below.
+                  </p>
                 </div>
+                <a
+                  className="admin-button primary"
+                  href={stripeOverview?.dashboardUrl || "https://dashboard.stripe.com/payments"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name="payments" />
+                  Open in Stripe
+                </a>
               </div>
-              <div className="admin-payment-stats">
-                <div className="admin-stat">
-                  <span>Paying students</span>
-                  <strong>{payingStudentCount}</strong>
-                  <small>At least one successful payment</small>
+              <section className="admin-panel admin-stripe-live">
+                <div className="admin-panel-heading">
+                  <h2>Live from Stripe</h2>
+                  <span className="admin-muted">
+                    {stripeOverview
+                      ? "Refreshed just now"
+                      : stripeOverviewError
+                        ? stripeOverviewError
+                        : "Loading…"}
+                  </span>
                 </div>
-                <div className="admin-stat">
-                  <span>Payments received</span>
-                  <strong>
-                    {money(catalogPayments.amountMinor, CATALOG_CURRENCY)}
-                  </strong>
-                  <small>
-                    {catalogPayments.count} successful payment
-                    {catalogPayments.count === 1 ? "" : "s"}
-                  </small>
-                </div>
-              </div>
+                {stripeOverview ? (
+                  <>
+                    <div className="admin-payment-stats admin-stripe-balance">
+                      <div className="admin-stat">
+                        <span>Paying students</span>
+                        <strong>{payingStudentCount}</strong>
+                        <small>At least one successful payment</small>
+                      </div>
+                      {stripeOverview.available.map((b) => (
+                        <div className="admin-stat" key={`available-${b.currency}`}>
+                          <span>Available balance</span>
+                          <strong>{money(b.amountMinor, b.currency)}</strong>
+                          <small>Ready to pay out</small>
+                        </div>
+                      ))}
+                      {stripeOverview.pending.map((b) => (
+                        <div className="admin-stat" key={`pending-${b.currency}`}>
+                          <span>Pending balance</span>
+                          <strong>{money(b.amountMinor, b.currency)}</strong>
+                          <small>Still clearing</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="admin-table-scroll">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>CUSTOMER</th>
+                            <th>AMOUNT</th>
+                            <th>STATUS</th>
+                            <th>DATE</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stripeOverview.charges.map((charge) => (
+                            <tr key={charge.id}>
+                              <td>{charge.email || "—"}</td>
+                              <td>{money(charge.amountMinor, charge.currency)}</td>
+                              <td>
+                                <span
+                                  className={`admin-badge ${charge.status === "succeeded" ? "published" : "archived"}`}
+                                >
+                                  {label(charge.status)}
+                                </span>
+                              </td>
+                              <td>{dateTime(charge.createdAt)}</td>
+                              <td>
+                                <a
+                                  className="admin-text-button"
+                                  href={charge.dashboardUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  View <Icon name="arrow" size={16} />
+                                </a>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {!stripeOverview.charges.length && (
+                      <div className="admin-empty">
+                        <Icon name="payments" size={30} />
+                        <h3>No charges yet</h3>
+                        <p>Recent Stripe charges will appear here.</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="admin-empty">
+                    {stripeOverviewError ? (
+                      <>
+                        <Icon name="payments" size={30} />
+                        <h3>Couldn't reach Stripe</h3>
+                        <p>{stripeOverviewError}</p>
+                      </>
+                    ) : (
+                      <p>Loading live data from Stripe…</p>
+                    )}
+                  </div>
+                )}
+              </section>
               <section className="admin-panel">
+                <div className="admin-panel-heading">
+                  <h2>Recorded in your database</h2>
+                  <span className="admin-muted">
+                    Linked to student accounts and plans
+                  </span>
+                </div>
                 <div className="admin-library-toolbar">
                   <label className="admin-search">
                     <Icon name="search" />
@@ -1639,6 +1895,83 @@ export default function AdminWorkspace({ name }: { name: string }) {
                   <div className="admin-empty">Loading activity…</div>
                 ) : (
                   activityList(true)
+                )}
+              </section>
+            </>
+          )}
+          {section === "pricing" && (
+            <>
+              <div className="admin-page-heading">
+                <div>
+                  <p className="admin-eyebrow">WHAT STUDENTS PAY</p>
+                  <h1>Pricing</h1>
+                  <p>
+                    Set the price for each plan. Changes sync live to Stripe —
+                    no redeploy needed.
+                  </p>
+                </div>
+              </div>
+              <section className="admin-panel admin-pricing-panel">
+                {pricingPlans.length ? (
+                  <div className="admin-table-scroll">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>PLAN</th>
+                          <th>DURATION</th>
+                          <th>CURRENT PRICE</th>
+                          <th>NEW PRICE</th>
+                          <th>LAST UPDATED</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pricingPlans.map((plan) => (
+                          <tr key={plan.code}>
+                            <td>
+                              <strong>{plan.name}</strong>
+                            </td>
+                            <td>{plan.durationDays} days</td>
+                            <td>{money(plan.priceMinor, plan.currency)}</td>
+                            <td>
+                              <label className="admin-field admin-price-field">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  step="0.01"
+                                  placeholder={(plan.priceMinor / 100).toFixed(
+                                    2,
+                                  )}
+                                  value={priceDrafts[plan.code] ?? ""}
+                                  onChange={(e) =>
+                                    setPriceDrafts((d) => ({
+                                      ...d,
+                                      [plan.code]: e.target.value,
+                                    }))
+                                  }
+                                />
+                              </label>
+                            </td>
+                            <td>{dateTime(plan.updatedAt)}</td>
+                            <td>
+                              <button
+                                className="admin-text-button"
+                                disabled={busy || !priceDrafts[plan.code]}
+                                onClick={() => submitPrice(plan)}
+                              >
+                                Update <Icon name="arrow" size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="admin-empty">
+                    <Icon name="pricing" size={30} />
+                    <h3>Loading plan prices…</h3>
+                  </div>
                 )}
               </section>
             </>
