@@ -37,6 +37,14 @@ export function isStripePlanCode(value: unknown): value is StripePlanCode {
 
 // The Stripe price is the source of truth. The DB row is a cache the admin
 // can repoint (via updatePricingPlanPrice) without redeploying env vars.
+//
+// The DB is shared across environments (e.g. local dev and production), but
+// each one talks to Stripe with its own key (test vs live). A price id
+// cached by one environment is meaningless to the other's key — Stripe
+// rejects cross-mode lookups outright — so a cache miss here isn't treated
+// as fatal: fall back to this environment's own STRIPE_PRICE_* env var and
+// let this environment re-cache its own working id. Without this, whichever
+// environment wrote to the DB last would break the other's checkout.
 export async function getPricingPlan(code: StripePlanCode, db = getDb()) {
   const config = stripePlans[code];
   const [existing] = await db
@@ -44,9 +52,17 @@ export async function getPricingPlan(code: StripePlanCode, db = getDb()) {
     .from(pricingPlans)
     .where(eq(pricingPlans.code, code))
     .limit(1);
-  const priceId = existing?.stripePriceId || process.env[config.priceEnv];
+  const envPriceId = process.env[config.priceEnv];
+  let priceId = existing?.stripePriceId || envPriceId;
   if (!priceId) throw new Error(`${config.priceEnv} is missing.`);
-  const price = await getStripe().prices.retrieve(priceId);
+  let price: Stripe.Price;
+  try {
+    price = await getStripe().prices.retrieve(priceId);
+  } catch (error) {
+    if (!envPriceId || envPriceId === priceId) throw error;
+    priceId = envPriceId;
+    price = await getStripe().prices.retrieve(priceId);
+  }
   if (!price.active || price.unit_amount == null || !price.currency)
     throw new Error(`The Stripe price for ${config.label} is not active.`);
   const productId =
