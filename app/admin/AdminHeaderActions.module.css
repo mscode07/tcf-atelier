@@ -33,7 +33,7 @@
 .securityButton > span {
   white-space: nowrap;
 }
-.passcodeButton.passcodeButton {
+.passwordButton.passwordButton {
   background: #f0f2ff;
   color: #4656c8;
   border-color: #e1e5fc;
@@ -45,7 +45,7 @@
   box-shadow: 0 2px 4px rgb(25 41 67 / 10%);
 }
 @media (hover: hover) {
-  .passcodeButton:hover {
+  .passwordButton:hover {
     background: #e5e9ff;
     border-color: #c6cef8;
   }

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, gt, ilike, isNull, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import {
   adminActivity,
   moduleAccessGrants,
-  payments,
   testAttempts,
   users,
   userSubscriptions,
@@ -16,7 +15,7 @@ import {
   requireAdmin,
 } from "@/lib/admin/auth";
 import { isModule } from "@/lib/admin/types";
-import { STRIPE_LIVE_CHECKOUT_PREFIX } from "@/lib/stripe";
+import { listStudents } from "@/lib/admin/students";
 const uuid = (v: unknown): v is string =>
   typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(v);
 export async function GET(request: Request) {
@@ -27,7 +26,6 @@ export async function GET(request: Request) {
     const db = getDb();
     if (id) {
       if (!uuid(id)) throw new AdminError("Invalid student.");
-      const now = new Date();
       const [grants, subscriptions, attempts] = await Promise.all([
         db
           .select()
@@ -50,8 +48,6 @@ export async function GET(request: Request) {
             and(
               eq(userSubscriptions.userId, id),
               eq(userSubscriptions.status, "active"),
-              lte(userSubscriptions.startsAt, now),
-              gt(userSubscriptions.expiresAt, now),
             ),
           ),
         db
@@ -70,37 +66,9 @@ export async function GET(request: Request) {
         { headers: { "Cache-Control": "private, no-store" } },
       );
     }
-    const search = (params.get("q") || "").slice(0, 100).replace(/[%_\\]/g, "");
-    const offset = Math.max(0, Number(params.get("offset")) || 0);
-    const payer = params.get("payer") || "all";
-    const conditions = [eq(users.role, "student")];
-    const paidStudent = sql`exists (select 1 from ${payments} where ${payments.userId} = ${users.id} and ${payments.status} = 'paid' and ${payments.currency} ilike 'usd' and ${payments.providerOrderId} like ${STRIPE_LIVE_CHECKOUT_PREFIX + "%"})`;
-    if (payer === "paying") conditions.push(paidStudent);
-    if (payer === "unpaid") conditions.push(sql`not (${paidStudent})`);
-    if (search) {
-      const term = `%${search}%`;
-      conditions.push(or(ilike(users.email, term), ilike(users.name, term))!);
-    }
-    const rows = await db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        status: users.status,
-        createdAt: users.createdAt,
-        lastLoginAt: users.lastLoginAt,
-        country: users.country,
-        phone: users.phone,
-      })
-      .from(users)
-      .where(and(...conditions))
-      .orderBy(desc(users.createdAt))
-      .limit(51)
-      .offset(offset);
-    return NextResponse.json(
-      { students: rows.slice(0, 50), hasMore: rows.length > 50 },
-      { headers: { "Cache-Control": "private, no-store" } },
-    );
+    return NextResponse.json(await listStudents(params, db), {
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (e) {
     return adminError(e);
   }
@@ -183,33 +151,29 @@ export async function POST(request: Request) {
                 isNull(moduleAccessGrants.revokedAt),
               ),
             );
-          await tx
-            .insert(moduleAccessGrants)
-            .values({
-              userId: body.userId,
-              module: module as typeof moduleAccessGrants.$inferInsert.module,
-              kind: body.kind,
-              startsAt,
-              expiresAt,
-              reason,
-              actorId: admin.id,
-            });
+          await tx.insert(moduleAccessGrants).values({
+            userId: body.userId,
+            module: module as typeof moduleAccessGrants.$inferInsert.module,
+            kind: body.kind,
+            startsAt,
+            expiresAt,
+            reason,
+            actorId: admin.id,
+          });
         }
       } else throw new AdminError("Unknown action.");
-      await tx
-        .insert(adminActivity)
-        .values({
-          actorId: admin.id,
-          action:
-            body.action === "status"
-              ? `Student ${body.status}`
-              : body.action === "revoke"
-                ? "Access override removed"
-                : body.kind === "deny"
-                  ? "Module access blocked"
-                  : "Free access granted",
-          detail: `${student.email}${body.modules ? ` · ${body.modules.join(", ")}` : ""}${reason ? ` · ${reason}` : ""}`,
-        });
+      await tx.insert(adminActivity).values({
+        actorId: admin.id,
+        action:
+          body.action === "status"
+            ? `Student ${body.status}`
+            : body.action === "revoke"
+              ? "Access override removed"
+              : body.kind === "deny"
+                ? "Module access blocked"
+                : "Free access granted",
+        detail: `${student.email}${body.modules ? ` · ${body.modules.join(", ")}` : ""}${reason ? ` · ${reason}` : ""}`,
+      });
     });
     return NextResponse.json({ ok: true });
   } catch (e) {

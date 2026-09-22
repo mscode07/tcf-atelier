@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
-export default function PasscodeLogin({ onUnlock }: { onUnlock: () => void }) {
-  const [passcode, setPasscode] = useState("");
+export default function PasswordLogin({ onUnlock }: { onUnlock: () => void }) {
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(e: FormEvent) {
@@ -12,7 +12,7 @@ export default function PasscodeLogin({ onUnlock }: { onUnlock: () => void }) {
       const response = await fetch("/api/admin/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passcode }),
+        body: JSON.stringify({ password }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -21,7 +21,7 @@ export default function PasscodeLogin({ onUnlock }: { onUnlock: () => void }) {
       setError(
         e instanceof Error ? e.message : "Unable to sign in. Try again.",
       );
-      setPasscode("");
+      setPassword("");
     } finally {
       setBusy(false);
     }
@@ -37,33 +37,34 @@ export default function PasscodeLogin({ onUnlock }: { onUnlock: () => void }) {
           Your platform.
           <br />A clearer view.
         </h1>
-        <p>Enter your four-digit passcode to manage your platform.</p>
+        <p>Enter your password to manage your platform.</p>
         <form onSubmit={submit}>
           <label className="admin-field">
-            Passcode
+            Password
             <input
-              className="admin-pin-input"
+              className="admin-password-input"
               type="password"
-              inputMode="numeric"
-              pattern="[0-9]{4}"
-              maxLength={4}
-              autoComplete="off"
+              maxLength={72}
+              autoComplete="current-password"
+              name="password"
+              autoCapitalize="none"
+              spellCheck={false}
               required
               autoFocus
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ""))}
-              aria-describedby={error ? "passcode-error" : undefined}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-describedby={error ? "password-error" : undefined}
             />
           </label>
           {error && (
-            <p id="passcode-error" role="alert" className="admin-inline-error">
+            <p id="password-error" role="alert" className="admin-inline-error">
               {error}
             </p>
           )}
           <button
             className="admin-button primary"
             type="submit"
-            disabled={busy || passcode.length !== 4}
+            disabled={busy || !password}
           >
             {busy ? "Checking…" : "Unlock admin panel →"}
           </button>

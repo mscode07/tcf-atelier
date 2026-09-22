@@ -41,6 +41,9 @@ export type StudentRecord = {
   lastLoginAt: string;
   country: string | null;
   phone: string | null;
+  planActive: boolean;
+  planName: string | null;
+  planExpiresAt: string | null;
 };
 export type GrantRecord = {
   id: string;

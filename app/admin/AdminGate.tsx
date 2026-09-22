@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import AdminWorkspace from "./AdminWorkspace";
-import PasscodeLogin from "./PasscodeLogin";
+import PasswordLogin from "./PasswordLogin";
 export default function AdminGate() {
   const [ready, setReady] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
@@ -76,6 +76,6 @@ export default function AdminGate() {
   return unlocked ? (
     <AdminWorkspace name="Admin" />
   ) : (
-    <PasscodeLogin onUnlock={() => setUnlocked(true)} />
+    <PasswordLogin onUnlock={() => setUnlocked(true)} />
   );
 }

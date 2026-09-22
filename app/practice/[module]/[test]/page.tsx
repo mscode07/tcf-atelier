@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getAccessByEmail } from "@/lib/access";
-import { publishedContent } from "@/lib/admin/content";
+import { publishedTest } from "@/lib/admin/content";
 import ReadingTestClient from "@/app/reading-tests/[test]/ReadingTestClient";
 export const dynamic = "force-dynamic";
 export default async function PracticePage({
@@ -15,9 +15,7 @@ export default async function PracticePage({
   const session = await auth();
   const access = await getAccessByEmail(session?.user?.email, module);
   if (!access.active) redirect("/?access=subscription_required");
-  const data = (await publishedContent(module)).find(
-    (t) => t.testNumber === Number(test),
-  );
+  const data = await publishedTest(module, Number(test));
   if (!data || !data.questions.length) notFound();
   return (
     <ReadingTestClient

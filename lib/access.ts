@@ -1,5 +1,5 @@
 import { hasAdminSession } from "@/lib/admin/auth";
-import { and, desc, eq, gt, lte } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, lte, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { moduleAccessGrants, userSubscriptions, users } from "@/lib/db/schema";
 import { ModuleKey } from "@/lib/admin/types";
@@ -40,16 +40,14 @@ export async function getAccessByEmail(
     .limit(1);
   if (!user) return empty;
   const now = new Date();
-  await db
-    .update(userSubscriptions)
-    .set({ status: "expired", updatedAt: now })
-    .where(
-      and(
-        eq(userSubscriptions.userId, user.id),
-        eq(userSubscriptions.status, "active"),
-        lte(userSubscriptions.expiresAt, now),
-      ),
-    );
+  const stillActive = or(
+    isNull(userSubscriptions.expiresAt),
+    gt(userSubscriptions.expiresAt, now),
+  )!;
+  const alreadyStarted = or(
+    isNull(userSubscriptions.startsAt),
+    lte(userSubscriptions.startsAt, now),
+  )!;
   const [[subscription], grants] = await Promise.all([
     db
       .select({ expiresAt: userSubscriptions.expiresAt })
@@ -58,8 +56,8 @@ export async function getAccessByEmail(
         and(
           eq(userSubscriptions.userId, user.id),
           eq(userSubscriptions.status, "active"),
-          lte(userSubscriptions.startsAt, now),
-          gt(userSubscriptions.expiresAt, now),
+          alreadyStarted,
+          stillActive,
         ),
       )
       .orderBy(desc(userSubscriptions.expiresAt))
@@ -72,7 +70,9 @@ export async function getAccessByEmail(
   const modules = evaluateAccess(
     user.status,
     user.role,
-    subscription?.expiresAt || null,
+    subscription
+      ? (subscription.expiresAt ?? new Date("9999-12-31T00:00:00.000Z"))
+      : null,
     grants,
     now,
   );

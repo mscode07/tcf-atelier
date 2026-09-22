@@ -115,7 +115,7 @@ with `activeOneMillisecondAfterExpiry: false`.
 
 ## Admin workspace
 
-Open `/admin` and enter the configured four-digit passcode. The admin workspace
+Open `/admin` and enter the configured admin password. The admin workspace
 has its own responsive layout and includes student search and details, timed or
 lifetime module access, explicit module blocks, content editing, bulk actions,
 JSON/DOCX/searchable-PDF imports, and an activity log. Students still see locked
@@ -129,20 +129,29 @@ module cards when they do not have access.
    access grants, revisions, and attempt content versions.
 3. Run `npm run content:seed` to import the existing library into the
    database. This is idempotent and never replaces existing edited collections.
-4. Set `ADMIN_PASSCODE` to four digits and `ADMIN_SESSION_SECRET` to a random
+4. Set `ADMIN_PASSWORD` to at least 8 characters with uppercase and lowercase
+   letters, a number, and a symbol and `ADMIN_SESSION_SECRET` to a random
    secret of at least 32 characters in `.env` (and hosting settings on deployment).
    These values stay on the server. No student account or email setup is needed.
-5. Start `npm run dev`, open `/admin`, and enter the passcode.
+5. Start `npm run dev`, open `/admin`, and enter the password.
 
 There is no preview mode. The old `/admin/preview` address redirects to `/admin`
-and requires the same passcode. All admin pages and data APIs require a signed,
+and requires the same password. All admin pages and data APIs require a signed,
 HttpOnly session backed by revocable database records. Refreshing `/admin` locks
 the panel; five minutes without activity also locks it, with server-side expiry.
-“Lock panel” signs out. “Change passcode” requires the current PIN and confirmation,
+“Lock panel” signs out. “Change password” requires the current password and confirmation,
 stores a bcrypt hash in the database, and invalidates all existing sessions. Ten incorrect attempts cause a
 15-minute lockout shared across workers on a single server. Multi-server hosting
 must use shared storage for the login limiter. Links leaving the admin workspace
 open in a new tab. Audit entries use an automatically created internal identity.
+
+Existing installations can sign in with their old PIN, then use **Change password**
+to replace it. New passwords cannot be four-digit PINs. The saved bcrypt hash takes
+precedence over the environment credential; after changing it, the old PIN no longer
+works. `ADMIN_PASSCODE` remains a legacy bootstrap fallback only when `ADMIN_PASSWORD`
+is not set. Keep `ADMIN_SESSION_SECRET` configured; a saved password does not need a
+bootstrap credential in the environment. Passwords are case-sensitive and limited to
+72 UTF-8 bytes. This change does not require a database migration.
 
 The seed includes 40 Reading tests, 40 Listening tests, and the Writing and
 Speaking question banks. Listening Tests 5, 9, 24, and 25 each have a missing
@@ -197,3 +206,21 @@ checks in an isolated in-memory PostgreSQL instance. Run `npm run typecheck` and
 `npm run build` for application validation. Live authentication, grants, and
 payments should also be checked against the configured development database
 before deployment.
+
+### Email accounts and screening
+
+Email sign-up collects first name, last name, email, and password separately from sign-in.
+Accounts can sign in immediately. No confirmation emails, email provider, or API key are required.
+The server rejects known disposable email domains (including subdomains), reserved example
+and testing domains, and obvious placeholder local parts such as `test`, `test123`, `dummy`,
+and `fake`. Gmail dot and plus variants of these placeholders are also blocked. Normal
+personal addresses and plus aliases remain allowed. Google sign-in applies the same policy.
+Existing password accounts can still sign in without email verification.
+
+This is a best-effort abuse filter: it cannot establish mailbox existence or ownership,
+and newly created disposable domains may not yet be listed. The list is bundled locally;
+no submitted email address is sent to a screening service. See `lib/auth/data/README.md`
+for its source and update instructions.
+
+Run `npm run db:migrate` before release to add the first and last name fields
+(`0006_living_shriek`). Run `npm run test:auth` for email-policy and account tests.

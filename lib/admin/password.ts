@@ -4,29 +4,36 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "node:crypto";
+import { isAdminPasswordInput, isStrongAdminPassword } from "./password-policy";
+
 export const ADMIN_COOKIE = "tcf-admin-session";
 export const SESSION_SECONDS = 5 * 60;
 function configuration() {
-  const pin = process.env.ADMIN_PASSCODE || "";
+  const password =
+    process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSCODE || "";
   const secret =
     process.env.ADMIN_SESSION_SECRET || process.env.AUTH_SECRET || "";
-  return /^\d{4}$/.test(pin) && secret.length >= 32 ? { pin, secret } : null;
+  return secret.length >= 32 ? { password, secret } : null;
 }
-export const passcodeConfigured = () => Boolean(configuration());
-export function checkPasscode(input: unknown) {
+export const adminSessionConfigured = () => Boolean(configuration());
+export function checkAdminPassword(input: unknown) {
   const config = configuration();
-  if (!config || typeof input !== "string" || !/^\d{4}$/.test(input))
-    return false;
+  if (!config || !isAdminPasswordInput(input)) return false;
+  // Keep the old environment PIN usable only to migrate to a new password.
+  const validBootstrap = process.env.ADMIN_PASSWORD
+    ? isStrongAdminPassword(config.password)
+    : isStrongAdminPassword(config.password) || /^\d{4}$/.test(config.password);
+  if (!validBootstrap) return false;
   return timingSafeEqual(
     createHash("sha256").update(input).digest(),
-    createHash("sha256").update(config.pin).digest(),
+    createHash("sha256").update(config.password).digest(),
   );
 }
 function signature(payload: string) {
   const config = configuration();
-  if (!config) throw new Error("Admin passcode is not configured.");
+  if (!config) throw new Error("Admin session secret is not configured.");
   return createHmac("sha256", config.secret)
-    .update(`${config.pin}:${payload}`)
+    .update(`${config.password}:${payload}`)
     .digest("hex");
 }
 export function createAdminSession(now = Date.now()) {
