@@ -163,7 +163,6 @@ export default function HomePage() {
   const [moduleAccess, setModuleAccess] = useState<
     Record<string, { active: boolean }>
   >({});
-  const [isAdmin, setIsAdmin] = useState(false);
   const [catalog, setCatalog] = useState<
     { testNumber: number; title: string }[]
   >([]);
@@ -240,7 +239,6 @@ export default function HomePage() {
     const data = await response.json();
     setAccessActive(Boolean(data.active));
     setModuleAccess(data.modules || {});
-    setIsAdmin(Boolean(data.isAdmin));
     setAccessReady(true);
   };
   useEffect(() => {
@@ -1052,15 +1050,6 @@ export default function HomePage() {
               here.
             </p>
           </div>
-          {isAdmin && (
-            <a
-              className="btn"
-              href="/admin"
-              style={{ marginBottom: 24, display: "inline-flex" }}
-            >
-              Open admin workspace →
-            </a>
-          )}
           <div className="module-grid">
             {[
               ["Listening", "Audio comprehension", "Train your ear"],
