@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
-import { newOAuthClient, saveDriveConnection } from "@/lib/google-drive";
-import { STATE_COOKIE } from "../start/route";
+import {
+  DRIVE_OAUTH_STATE_COOKIE,
+  newOAuthClient,
+  saveDriveConnection,
+} from "@/lib/google-drive";
 
 function redirectWithNotice(origin: string, notice: string) {
   const response = NextResponse.redirect(
     `${origin}/admin?driveNotice=${encodeURIComponent(notice)}`,
   );
-  response.cookies.set(STATE_COOKIE, "", { path: "/", maxAge: 0 });
+  response.cookies.set(DRIVE_OAUTH_STATE_COOKIE, "", { path: "/", maxAge: 0 });
   return response;
 }
 
@@ -23,7 +26,7 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state");
   const cookieState = request.headers
     .get("cookie")
-    ?.match(new RegExp(`${STATE_COOKIE}=([^;]+)`))?.[1];
+    ?.match(new RegExp(`${DRIVE_OAUTH_STATE_COOKIE}=([^;]+)`))?.[1];
   if (!code || !state || !cookieState || state !== cookieState)
     return redirectWithNotice(origin, "Could not verify the Drive connection request. Try again.");
   try {

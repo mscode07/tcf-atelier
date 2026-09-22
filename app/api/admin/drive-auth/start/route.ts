@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { requireAdmin } from "@/lib/admin/auth";
-import { DRIVE_SCOPE, newOAuthClient } from "@/lib/google-drive";
-
-export const STATE_COOKIE = "tcf-drive-oauth-state";
+import { DRIVE_OAUTH_STATE_COOKIE, DRIVE_SCOPE, newOAuthClient } from "@/lib/google-drive";
 
 export async function GET() {
   await requireAdmin();
@@ -16,7 +14,7 @@ export async function GET() {
     state,
   });
   const response = NextResponse.redirect(url);
-  response.cookies.set(STATE_COOKIE, state, {
+  response.cookies.set(DRIVE_OAUTH_STATE_COOKIE, state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
