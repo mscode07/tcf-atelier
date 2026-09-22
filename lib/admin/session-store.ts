@@ -19,7 +19,7 @@ export async function checkStoredPassword(password: unknown, db = getDb()) {
     .select()
     .from(adminSettings)
     .where(eq(adminSettings.id, "main"));
-  return setting
+  return setting?.passcodeHash
     ? compare(password, setting.passcodeHash)
     : checkAdminPassword(password);
 }

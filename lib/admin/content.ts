@@ -10,6 +10,7 @@ import {
 import { MaterialTest, ModuleKey } from "./types";
 import { questionIssues } from "./import";
 import { AdminError } from "./errors";
+import { syncTestToDrive } from "./content-drive-sync";
 export async function publishedContent(module: ModuleKey) {
   return getDb()
     .select()
@@ -78,7 +79,12 @@ export async function saveTests(
       if (problem.length) throw new AdminError(`${t.title}: ${problem[0]}`);
     }
   }
-  return database.transaction(async (tx) => {
+  const syncJobs: {
+    contentId: string;
+    test: MaterialTest;
+    driveFileId: string | null;
+  }[] = [];
+  const result = await database.transaction(async (tx) => {
     // Serialize content operations so replacements and concurrent imports cannot lose edits.
     await tx.execute(sql`select pg_advisory_xact_lock(781903)`);
     for (const test of tests) {
@@ -138,7 +144,18 @@ export async function saveTests(
             updatedAt: new Date(),
           })
           .where(eq(materialContent.id, old.id));
-      } else await tx.insert(materialContent).values(test);
+        syncJobs.push({
+          contentId: old.id,
+          test: { ...test, questions },
+          driveFileId: old.driveFileId,
+        });
+      } else {
+        const [inserted] = await tx
+          .insert(materialContent)
+          .values(test)
+          .returning({ id: materialContent.id });
+        syncJobs.push({ contentId: inserted.id, test, driveFileId: null });
+      }
       const [module] = await tx
         .select({ id: courseModules.id })
         .from(courseModules)
@@ -174,4 +191,12 @@ export async function saveTests(
     });
     return { saved: tests.length };
   });
+  // Fire after the transaction commits: Drive calls are slow and must not
+  // hold the advisory lock, and a Drive hiccup must never roll back a save.
+  await Promise.allSettled(
+    syncJobs.map((job) =>
+      syncTestToDrive(job.contentId, job.test, job.driveFileId, database),
+    ),
+  );
+  return result;
 }
